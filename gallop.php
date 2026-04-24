@@ -3,7 +3,7 @@
  * Plugin Name: Gallop
  * Description: Headless WordPress plugin that registers custom post types and exposes them via the WP REST API for consumption by a Next.js front end.
  * Version:     0.1.0
- * Author:      Webplant Media
+ * Author:      Web Plant Media
  * License:     GPL-2.0-or-later
  * Requires PHP: 8.1
  * Requires at least: 6.4

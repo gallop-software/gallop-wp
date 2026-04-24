@@ -1,5 +1,5 @@
 {
-    "name": "webplant-media/gallop",
+    "name": "webplantmedia/gallop-wp",
     "description": "Headless WordPress plugin exposing custom post types via REST for a Next.js front end.",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
