@@ -1,0 +1,8 @@
+{
+  "name": "gallop-wp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "zip": "./build.sh"
+  }
+}
