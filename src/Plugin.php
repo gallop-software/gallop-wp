@@ -10,6 +10,7 @@ use Gallop\Admin\Settings;
 use Gallop\Frontend\Redirect;
 use Gallop\PostTypes\Registry as PostTypesRegistry;
 use Gallop\PostTypes\Storage as PostTypesStorage;
+use Gallop\Rest\AuthEndpoint;
 use Gallop\Rest\PostEndpoint;
 use Gallop\Rest\CategoryEndpoint;
 
@@ -24,6 +25,7 @@ final class Plugin
 
         add_action('rest_api_init', [new PostEndpoint(), 'register']);
         add_action('rest_api_init', [new CategoryEndpoint(), 'register']);
+        add_action('rest_api_init', [new AuthEndpoint(), 'register']);
 
         (new Redirect())->register();
 
