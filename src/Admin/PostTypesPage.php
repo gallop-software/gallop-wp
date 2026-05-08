@@ -22,8 +22,10 @@ final class PostTypesPage
         'reserved'  => ['error',   'The slug <code>%s</code> is already used by WordPress or another plugin. Choose a different name.'],
     ];
 
-    public function __construct(private readonly Storage $storage)
-    {
+    public function __construct(
+        private readonly Storage $storage,
+        private readonly Settings $settings,
+    ) {
     }
 
     public function registerHandlers(): void
@@ -70,16 +72,43 @@ final class PostTypesPage
         if (!current_user_can('manage_options')) {
             return;
         }
-        $defs = $this->storage->all();
-        $postAction = esc_url(admin_url('admin-post.php'));
-        $nonce = wp_nonce_field(self::NONCE, '_wpnonce', true, false);
 
-        echo '<div class="wrap"><h1>Gallop — Post Types</h1>';
-        $this->renderNotice();
+        $tab = (string)($_GET['tab'] ?? 'settings');
+        if (!in_array($tab, ['settings', 'post-types'], true)) {
+            $tab = 'settings';
+        }
+
+        echo '<div class="wrap"><h1>Gallop</h1>';
+        settings_errors();
+        $this->renderTabs($tab);
         $this->renderStyles();
-        $this->renderList($defs, $postAction, $nonce);
-        $this->renderForm($postAction, $nonce);
+
+        if ($tab === 'settings') {
+            $this->settings->renderForm();
+        } else {
+            $this->renderNotice();
+            $postAction = esc_url(admin_url('admin-post.php'));
+            $nonce = wp_nonce_field(self::NONCE, '_wpnonce', true, false);
+            $defs = $this->storage->all();
+            $this->renderList($defs, $postAction, $nonce);
+            $this->renderForm($postAction, $nonce);
+        }
         echo '</div>';
+    }
+
+    private function renderTabs(string $active): void
+    {
+        $tabs = [
+            'settings'   => 'Settings',
+            'post-types' => 'Post Types',
+        ];
+        echo '<h2 class="nav-tab-wrapper">';
+        foreach ($tabs as $slug => $label) {
+            $url = esc_url(add_query_arg(['page' => self::PAGE, 'tab' => $slug], admin_url('admin.php')));
+            $class = 'nav-tab' . ($active === $slug ? ' nav-tab-active' : '');
+            echo '<a href="' . $url . '" class="' . $class . '">' . esc_html($label) . '</a>';
+        }
+        echo '</h2>';
     }
 
     private function assertAllowed(string $nonceAction): void

@@ -6,6 +6,8 @@ namespace Gallop;
 
 use Gallop\Admin\Menu;
 use Gallop\Admin\PostTypesPage;
+use Gallop\Admin\Settings;
+use Gallop\Frontend\Redirect;
 use Gallop\PostTypes\Registry as PostTypesRegistry;
 use Gallop\PostTypes\Storage as PostTypesStorage;
 use Gallop\Rest\PostEndpoint;
@@ -23,8 +25,13 @@ final class Plugin
         add_action('rest_api_init', [new PostEndpoint(), 'register']);
         add_action('rest_api_init', [new CategoryEndpoint(), 'register']);
 
+        (new Redirect())->register();
+
         if (is_admin()) {
-            $postTypesPage = new PostTypesPage($postTypesStorage);
+            $settings = new Settings();
+            add_action('admin_init', [$settings, 'register']);
+
+            $postTypesPage = new PostTypesPage($postTypesStorage, $settings);
             $postTypesPage->registerHandlers();
 
             add_action('admin_menu', [new Menu($postTypesPage), 'register']);
