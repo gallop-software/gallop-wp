@@ -15,8 +15,8 @@ final class Menu
         $callback = [$this->postTypesPage, 'render'];
 
         add_menu_page(
-            page_title: 'Gallop',
-            menu_title: 'Gallop',
+            page_title: __('Gallop', 'gallop'),
+            menu_title: __('Gallop', 'gallop'),
             capability: 'manage_options',
             menu_slug: 'gallop',
             callback: $callback,
@@ -26,20 +26,19 @@ final class Menu
 
         add_submenu_page(
             parent_slug: 'gallop',
-            page_title: 'Settings',
-            menu_title: 'Settings',
+            page_title: __('Settings', 'gallop'),
+            menu_title: __('Settings', 'gallop'),
             capability: 'manage_options',
             menu_slug: 'gallop',
             callback: $callback,
         );
 
-        global $submenu;
-        if (isset($submenu['gallop'])) {
-            $submenu['gallop'][] = [
-                __('Post Types', 'gallop'),
-                'manage_options',
-                'admin.php?page=gallop&tab=post-types',
-            ];
-        }
+        add_submenu_page(
+            parent_slug: 'gallop',
+            page_title: __('Post Types', 'gallop'),
+            menu_title: __('Post Types', 'gallop'),
+            capability: 'manage_options',
+            menu_slug: 'admin.php?page=gallop&tab=post-types',
+        );
     }
 }
