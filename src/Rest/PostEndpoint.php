@@ -68,14 +68,12 @@ final class PostEndpoint
             'postStatus' => $post->post_status,
             'commentStatus' => $post->comment_status,
             'pingStatus' => $post->ping_status,
-            'postPassword' => $post->post_password,
             'postName' => $post->post_name,
             'toPing' => $post->to_ping,
             'pinged' => $post->pinged,
             'postModified' => $post->post_modified,
             'postModifiedGmt' => $post->post_modified_gmt,
             'postParent' => $post->post_parent,
-            'guid' => $post->guid,
             'menuOrder' => $post->menu_order,
             'postType' => $post->post_type,
             'postMimeType' => $post->post_mime_type,
@@ -90,7 +88,11 @@ final class PostEndpoint
         }
 
         $seo = YoastSEO()->meta->for_post($post->ID);
-        $images = array_reverse($seo->open_graph_images);
+        if (!$seo) {
+            return new \stdClass();
+        }
+        $ogImages = is_array($seo->open_graph_images ?? null) ? $seo->open_graph_images : [];
+        $images = array_reverse($ogImages);
         $image = array_pop($images);
 
         return [
@@ -127,12 +129,10 @@ final class PostEndpoint
             'author' => [
                 'ID' => $post->post_author,
                 'displayName' => get_the_author_meta('display_name', $post->post_author),
-                'userEmail' => get_the_author_meta('user_email', $post->post_author),
                 'userUrl' => get_the_author_meta('user_url', $post->post_author),
-                'description' => get_the_author_meta('description', $post->post_author),
+                'description' => wp_kses_post((string) get_the_author_meta('description', $post->post_author)),
             ],
             'permalink' => get_permalink($post->ID),
-            'siteAuthor' => get_bloginfo('admin_email'),
             'siteTitle' => get_bloginfo('name'),
             'siteDescription' => get_bloginfo('description'),
         ];

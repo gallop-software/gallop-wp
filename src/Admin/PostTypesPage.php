@@ -40,6 +40,23 @@ final class PostTypesPage
     {
         add_action('admin_post_' . self::SAVE, [$this, 'handleSave']);
         add_action('admin_post_' . self::DELETE, [$this, 'handleDelete']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+    }
+
+    public function enqueueAssets(string $hook): void
+    {
+        if ($hook !== 'toplevel_page_' . self::PAGE) {
+            return;
+        }
+        $rel = 'assets/css/admin.css';
+        $abs = dirname(__DIR__, 2) . '/' . $rel;
+        $version = is_file($abs) ? (string) filemtime($abs) : '0';
+        wp_enqueue_style(
+            'gallop-admin',
+            plugins_url($rel, dirname(__DIR__, 2) . '/gallop.php'),
+            [],
+            $version
+        );
     }
 
     public function handleSave(): void
@@ -95,7 +112,6 @@ final class PostTypesPage
         echo '<div class="wrap"><h1>Gallop</h1>';
         settings_errors();
         $this->renderTabs($tab);
-        $this->renderStyles();
 
         if ($tab === 'settings') {
             $this->settings->renderForm();
@@ -148,16 +164,7 @@ final class PostTypesPage
         echo '<div class="notice notice-' . esc_attr($kind) . ' is-dismissible"><p>' . wp_kses($body, $allowed) . '</p></div>';
     }
 
-    private function renderStyles(): void
-    {
-        echo '<style>
-            .gallop-delete-btn { background: #fbeaea; border: 0; color: #b32d2e; padding: 0 10px; border-radius: 3px; cursor: pointer; font: inherit; font-weight: 500; transition: background .15s, color .15s; }
-            .gallop-delete-btn:hover, .gallop-delete-btn:focus { background: #b32d2e; color: #fff; outline: none; }
-            .gallop-actions-col { width: 90px; text-align: left; }
-        </style>';
-    }
-
-    /** @param list<Definition> $defs */
+/** @param list<Definition> $defs */
     private function renderList(array $defs): void
     {
         echo '<h2>' . esc_html__('Registered post types', 'gallop') . '</h2>';

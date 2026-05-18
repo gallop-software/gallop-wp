@@ -1,6 +1,6 @@
 === Gallop ===
 Contributors: webplantmedia
-Tags: headless, rest-api, nextjs, custom-post-types, decoupled
+Tags: headless, rest-api, custom-post-types, decoupled
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 8.1

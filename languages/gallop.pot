@@ -1,0 +1,148 @@
+# Copyright (C) 2026 Web Plant Media
+# This file is distributed under the GPLv2 or later license.
+msgid ""
+msgstr ""
+"Project-Id-Version: Gallop 0.2.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/gallop\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-05-18T00:00:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Domain: gallop\n"
+
+#: src/Admin/Menu.php:39
+#: src/Admin/PostTypesPage.php:130
+msgid "Post Types"
+msgstr ""
+
+#: src/Admin/Settings.php:36
+#: src/Admin/PostTypesPage.php:129
+msgid "Settings"
+msgstr ""
+
+#: src/Admin/Settings.php:38
+msgid "When set, public front-end requests are 301-redirected to this URL with the same path. Leave blank to keep the default WordPress front end."
+msgstr ""
+
+#: src/Admin/Settings.php:45
+msgid "Next.js Production URL"
+msgstr ""
+
+#: src/Admin/Settings.php:54
+msgid "Trust proxy IP headers"
+msgstr ""
+
+#: src/Admin/Settings.php:89
+msgid "Enable only if this site sits behind a trusted reverse proxy (Cloudflare, a load balancer, etc.) that overwrites these headers. Leaving it off is safer on direct-served sites; turning it on without a trusted proxy lets attackers bypass login rate limits by spoofing the header."
+msgstr ""
+
+#: src/Admin/Settings.php:98
+msgid "Save settings"
+msgstr ""
+
+#: src/Rest/AuthEndpoint.php:70
+msgid "Too many login attempts. Please try again later."
+msgstr ""
+
+#: src/Rest/AuthEndpoint.php:88
+msgid "Invalid username or password."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:23
+msgid "Post type saved."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:24
+msgid "Post type deleted."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:25
+msgid "Name is required."
+msgstr ""
+
+#. translators: %s: post type slug
+#: src/Admin/PostTypesPage.php:27
+msgid "A post type with slug <code>%s</code> already exists. Delete it below first, or choose a different name."
+msgstr ""
+
+#. translators: %s: post type slug
+#: src/Admin/PostTypesPage.php:29
+msgid "The slug <code>%s</code> is already used by WordPress or another plugin. Choose a different name."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:170
+msgid "Registered post types"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:172
+msgid "No post types yet. Add one below."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:179
+msgid "Slug"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:180
+msgid "Singular"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:181
+msgid "Plural"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:182
+msgid "REST endpoint"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:183
+msgid "Actions"
+msgstr ""
+
+#. translators: %s: plural label of the post type being deleted
+#: src/Admin/PostTypesPage.php:189
+msgid "Delete the \"%s\" post type? Existing posts remain in the database but become inaccessible until you re-add the post type."
+msgstr ""
+
+#. translators: %s: post type plural label
+#: src/Admin/PostTypesPage.php:203
+msgid "Delete %s"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:203
+msgid "Delete"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:214
+msgid "Add a post type"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:220
+msgid "Plural name"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:221
+msgid "Books"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:222
+msgid "Used for the admin menu and the REST endpoint slug (lowercased and hyphenated)."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:225
+msgid "Singular name"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:226
+msgid "Book"
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:227
+msgid "Used in admin labels for a single item (e.g. \"Add New Book\")."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:230
+msgid "Add post type"
+msgstr ""

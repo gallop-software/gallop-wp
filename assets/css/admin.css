@@ -1,0 +1,23 @@
+.gallop-delete-btn {
+    background: #fbeaea;
+    border: 0;
+    color: #b32d2e;
+    padding: 0 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 500;
+    transition: background .15s, color .15s;
+}
+
+.gallop-delete-btn:hover,
+.gallop-delete-btn:focus {
+    background: #b32d2e;
+    color: #fff;
+    outline: none;
+}
+
+.gallop-actions-col {
+    width: 90px;
+    text-align: left;
+}

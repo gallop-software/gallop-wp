@@ -33,13 +33,13 @@ final class Menu
             callback: $callback,
         );
 
-        add_submenu_page(
-            parent_slug: 'gallop',
-            page_title: 'Post Types',
-            menu_title: 'Post Types',
-            capability: 'manage_options',
-            menu_slug: 'gallop&tab=post-types',
-            callback: '__return_null',
-        );
+        global $submenu;
+        if (isset($submenu['gallop'])) {
+            $submenu['gallop'][] = [
+                __('Post Types', 'gallop'),
+                'manage_options',
+                'admin.php?page=gallop&tab=post-types',
+            ];
+        }
     }
 }

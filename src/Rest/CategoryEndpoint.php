@@ -86,7 +86,6 @@ final class CategoryEndpoint
     {
         return [
             'permalink' => get_category_link($category->term_id),
-            'siteAuthor' => get_bloginfo('admin_email'),
             'siteTitle' => get_bloginfo('name'),
             'siteDescription' => get_bloginfo('description'),
         ];

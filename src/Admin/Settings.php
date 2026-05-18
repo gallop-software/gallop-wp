@@ -70,7 +70,7 @@ final class Settings
         if ($value === '') {
             return '';
         }
-        return esc_url_raw(untrailingslashit($value));
+        return esc_url_raw(untrailingslashit($value), ['http', 'https']);
     }
 
     public static function renderField(): void

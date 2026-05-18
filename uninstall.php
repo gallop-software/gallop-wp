@@ -13,6 +13,38 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
+if (!function_exists('gallop_delete_auth_transients')) {
+    function gallop_delete_auth_transients(): void
+    {
+        global $wpdb;
+
+        $like = $wpdb->esc_like('_transient_gallop_auth_') . '%';
+        $timeoutLike = $wpdb->esc_like('_transient_timeout_gallop_auth_') . '%';
+
+        // Direct query is intentional: this runs once at uninstall, has no caching surface,
+        // and is the only way to enumerate transients by name prefix in the options table.
+        // Note: on sites using a persistent object cache, cached transient values may
+        // linger in the cache until their TTL expires.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $names = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+                $like,
+                $timeoutLike
+            )
+        );
+
+        foreach ($names as $name) {
+            if (strpos($name, '_transient_timeout_') === 0) {
+                $key = substr($name, strlen('_transient_timeout_'));
+            } else {
+                $key = substr($name, strlen('_transient_'));
+            }
+            delete_transient($key);
+        }
+    }
+}
+
 $options = [
     'gallop_post_types',
     'gallop_nextjs_production_url',
@@ -34,32 +66,4 @@ if (is_multisite()) {
         delete_option($option);
     }
     gallop_delete_auth_transients();
-}
-
-function gallop_delete_auth_transients(): void
-{
-    global $wpdb;
-
-    $like = $wpdb->esc_like('_transient_gallop_auth_') . '%';
-    $timeoutLike = $wpdb->esc_like('_transient_timeout_gallop_auth_') . '%';
-
-    // Direct query is intentional: this runs once at uninstall, has no caching surface,
-    // and is the only way to enumerate transients by name prefix in the options table.
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $names = $wpdb->get_col(
-        $wpdb->prepare(
-            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-            $like,
-            $timeoutLike
-        )
-    );
-
-    foreach ($names as $name) {
-        if (strpos($name, '_transient_timeout_') === 0) {
-            $key = substr($name, strlen('_transient_timeout_'));
-        } else {
-            $key = substr($name, strlen('_transient_'));
-        }
-        delete_transient($key);
-    }
 }
