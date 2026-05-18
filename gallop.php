@@ -3,7 +3,7 @@
  * Plugin Name: Gallop
  * Description: Headless WordPress plugin that registers custom post types and exposes them via the WP REST API for consumption by a Next.js front end.
  * Version:     0.2.1
- * Author:      Web Plant Media
+ * Author:      Gallop Software
  * Author URI:  https://gallop.software
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html

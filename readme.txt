@@ -1,5 +1,5 @@
 === Gallop ===
-Contributors: webplantmedia
+Contributors: gallopsoftware
 Tags: headless, rest-api, custom-post-types, decoupled
 Requires at least: 6.4
 Tested up to: 6.9
