@@ -19,15 +19,23 @@ mkdir -p "$STAGING/$PLUGIN_SLUG"
 
 rsync -a \
     --exclude='.git' \
-    --exclude='.gitignore' \
+    --exclude='.git*' \
     --exclude='.DS_Store' \
-    --exclude='node_modules' \
+    --exclude='.claude' \
+    --exclude='.editorconfig' \
+    --exclude='.distignore' \
+    --exclude='.phpcs.xml*' \
+    --exclude='phpcs.xml*' \
+    --exclude='phpunit.xml*' \
     --exclude='tests' \
+    --exclude='node_modules' \
     --exclude='build.sh' \
     --exclude='package.json' \
     --exclude='package-lock.json' \
-    --exclude='*.zip' \
+    --exclude='composer.json' \
     --exclude='composer.lock' \
+    --exclude='*.zip' \
+    --exclude='*.log' \
     "$ROOT/" "$STAGING/$PLUGIN_SLUG/"
 
 rm -f "$OUTPUT"

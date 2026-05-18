@@ -18,6 +18,10 @@ final class Plugin
 {
     public function boot(): void
     {
+        add_action('init', static function (): void {
+            load_plugin_textdomain('gallop', false, dirname(plugin_basename(__DIR__)) . '/languages');
+        });
+
         $postTypesStorage = new PostTypesStorage();
         $postTypesRegistry = new PostTypesRegistry($postTypesStorage);
 

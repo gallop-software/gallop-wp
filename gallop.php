@@ -7,6 +7,8 @@
  * License:     GPL-2.0-or-later
  * Requires PHP: 8.1
  * Requires at least: 6.4
+ * Text Domain: gallop
+ * Domain Path: /languages
  */
 
 declare(strict_types=1);

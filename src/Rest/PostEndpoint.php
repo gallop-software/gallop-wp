@@ -20,30 +20,35 @@ final class PostEndpoint
 
     public function handle(WP_REST_Request $request): WP_REST_Response
     {
-        $uri = sanitize_text_field($request->get_param('uri') ?? '');
-        $postId = url_to_postid($uri);
+        $emptyPayload = [
+            'post' => null,
+            'seo'  => null,
+            'site' => null,
+        ];
 
+        $uri = sanitize_text_field((string) ($request->get_param('uri') ?? ''));
+        if ($uri === '') {
+            return new WP_REST_Response($emptyPayload, 200);
+        }
+
+        $postId = url_to_postid($uri);
         if (empty($postId)) {
-            return new WP_REST_Response([
-                'post' => null,
-                'seo' => null,
-                'site' => null,
-            ], 200);
+            return new WP_REST_Response($emptyPayload, 200);
         }
 
         $post = get_post($postId);
+        if (!$post instanceof \WP_Post) {
+            return new WP_REST_Response($emptyPayload, 200);
+        }
 
-        if (empty($post)) {
-            return new WP_REST_Response([
-                'post' => null,
-                'seo' => null,
-                'site' => null,
-            ], 200);
+        // Only expose published, non-password-protected content to the headless front end.
+        if ($post->post_status !== 'publish' || post_password_required($post)) {
+            return new WP_REST_Response($emptyPayload, 200);
         }
 
         return new WP_REST_Response([
             'post' => $this->buildPostData($post),
-            'seo' => $this->buildSeoData($post),
+            'seo'  => $this->buildSeoData($post),
             'site' => $this->buildSiteData($post),
         ], 200);
     }

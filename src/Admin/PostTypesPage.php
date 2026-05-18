@@ -14,13 +14,21 @@ final class PostTypesPage
     private const SAVE = 'gallop_save_post_type';
     private const DELETE = 'gallop_delete_post_type';
 
-    private const NOTICES = [
-        'saved'     => ['success', 'Post type saved.'],
-        'deleted'   => ['success', 'Post type deleted.'],
-        'invalid'   => ['error',   'Name is required.'],
-        'duplicate' => ['error',   'A post type with slug <code>%s</code> already exists. Delete it below first, or choose a different name.'],
-        'reserved'  => ['error',   'The slug <code>%s</code> is already used by WordPress or another plugin. Choose a different name.'],
-    ];
+    /**
+     * @return array<string, array{0: string, 1: string}>
+     */
+    private static function notices(): array
+    {
+        return [
+            'saved'     => ['success', __('Post type saved.', 'gallop')],
+            'deleted'   => ['success', __('Post type deleted.', 'gallop')],
+            'invalid'   => ['error',   __('Name is required.', 'gallop')],
+            /* translators: %s: post type slug */
+            'duplicate' => ['error',   __('A post type with slug <code>%s</code> already exists. Delete it below first, or choose a different name.', 'gallop')],
+            /* translators: %s: post type slug */
+            'reserved'  => ['error',   __('The slug <code>%s</code> is already used by WordPress or another plugin. Choose a different name.', 'gallop')],
+        ];
+    }
 
     public function __construct(
         private readonly Storage $storage,
@@ -36,10 +44,14 @@ final class PostTypesPage
 
     public function handleSave(): void
     {
-        $this->assertAllowed(self::NONCE);
+        if (!current_user_can('manage_options')) {
+            wp_die('Forbidden', 403);
+        }
+        check_admin_referer(self::NONCE);
 
-        $slug = sanitize_title((string)($_POST['rest_base'] ?? ''));
-        [$singular, $plural] = self::deriveLabels($slug);
+        $plural = isset($_POST['plural']) ? sanitize_text_field(wp_unslash((string) $_POST['plural'])) : '';
+        $singular = isset($_POST['singular']) ? sanitize_text_field(wp_unslash((string) $_POST['singular'])) : '';
+        $slug = sanitize_title($plural);
         $def = new Definition($slug, $singular, $plural);
 
         if (!$def->isValid()) {
@@ -58,9 +70,12 @@ final class PostTypesPage
 
     public function handleDelete(): void
     {
-        $this->assertAllowed(self::NONCE);
+        if (!current_user_can('manage_options')) {
+            wp_die('Forbidden', 403);
+        }
+        check_admin_referer(self::NONCE);
 
-        $slug = sanitize_key((string)($_POST['slug'] ?? ''));
+        $slug = isset($_POST['slug']) ? sanitize_key(wp_unslash((string) $_POST['slug'])) : '';
         if ($slug !== '') {
             $this->storage->delete($slug);
         }
@@ -73,10 +88,9 @@ final class PostTypesPage
             return;
         }
 
-        $tab = (string)($_GET['tab'] ?? 'settings');
-        if (!in_array($tab, ['settings', 'post-types'], true)) {
-            $tab = 'settings';
-        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab selector, no state change.
+        $rawTab = isset($_GET['tab']) ? sanitize_key(wp_unslash((string) $_GET['tab'])) : 'settings';
+        $tab = in_array($rawTab, ['settings', 'post-types'], true) ? $rawTab : 'settings';
 
         echo '<div class="wrap"><h1>Gallop</h1>';
         settings_errors();
@@ -87,11 +101,8 @@ final class PostTypesPage
             $this->settings->renderForm();
         } else {
             $this->renderNotice();
-            $postAction = esc_url(admin_url('admin-post.php'));
-            $nonce = wp_nonce_field(self::NONCE, '_wpnonce', true, false);
-            $defs = $this->storage->all();
-            $this->renderList($defs, $postAction, $nonce);
-            $this->renderForm($postAction, $nonce);
+            $this->renderList($this->storage->all());
+            $this->renderForm();
         }
         echo '</div>';
     }
@@ -99,24 +110,16 @@ final class PostTypesPage
     private function renderTabs(string $active): void
     {
         $tabs = [
-            'settings'   => 'Settings',
-            'post-types' => 'Post Types',
+            'settings'   => __('Settings', 'gallop'),
+            'post-types' => __('Post Types', 'gallop'),
         ];
         echo '<h2 class="nav-tab-wrapper">';
         foreach ($tabs as $slug => $label) {
-            $url = esc_url(add_query_arg(['page' => self::PAGE, 'tab' => $slug], admin_url('admin.php')));
+            $url = add_query_arg(['page' => self::PAGE, 'tab' => $slug], admin_url('admin.php'));
             $class = 'nav-tab' . ($active === $slug ? ' nav-tab-active' : '');
-            echo '<a href="' . $url . '" class="' . $class . '">' . esc_html($label) . '</a>';
+            echo '<a href="' . esc_url($url) . '" class="' . esc_attr($class) . '">' . esc_html($label) . '</a>';
         }
         echo '</h2>';
-    }
-
-    private function assertAllowed(string $nonceAction): void
-    {
-        if (!current_user_can('manage_options')) {
-            wp_die('Forbidden', 403);
-        }
-        check_admin_referer($nonceAction);
     }
 
     private function redirect(string $msg, string $slug = ''): never
@@ -131,14 +134,18 @@ final class PostTypesPage
 
     private function renderNotice(): void
     {
-        $msg = (string)($_GET['gallop_msg'] ?? '');
-        if (!isset(self::NOTICES[$msg])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only post-redirect notice, no state change.
+        $msg = isset($_GET['gallop_msg']) ? sanitize_key(wp_unslash((string) $_GET['gallop_msg'])) : '';
+        $notices = self::notices();
+        if (!isset($notices[$msg])) {
             return;
         }
-        [$kind, $template] = self::NOTICES[$msg];
-        $slug = sanitize_key((string)($_GET['slug'] ?? ''));
+        [$kind, $template] = $notices[$msg];
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only post-redirect notice.
+        $slug = isset($_GET['slug']) ? sanitize_key(wp_unslash((string) $_GET['slug'])) : '';
         $body = $slug !== '' ? sprintf($template, esc_html($slug)) : $template;
-        echo '<div class="notice notice-' . $kind . ' is-dismissible"><p>' . $body . '</p></div>';
+        $allowed = ['code' => []];
+        echo '<div class="notice notice-' . esc_attr($kind) . ' is-dismissible"><p>' . wp_kses($body, $allowed) . '</p></div>';
     }
 
     private function renderStyles(): void
@@ -151,73 +158,74 @@ final class PostTypesPage
     }
 
     /** @param list<Definition> $defs */
-    private function renderList(array $defs, string $postAction, string $nonce): void
+    private function renderList(array $defs): void
     {
-        echo '<h2>Registered post types</h2>';
+        echo '<h2>' . esc_html__('Registered post types', 'gallop') . '</h2>';
         if ($defs === []) {
-            echo '<p><em>No post types yet. Add one below.</em></p>';
+            echo '<p><em>' . esc_html__('No post types yet. Add one below.', 'gallop') . '</em></p>';
             return;
         }
 
+        $postAction = admin_url('admin-post.php');
+
         echo '<table class="widefat striped"><thead><tr>';
-        echo '<th>Slug</th><th>Singular</th><th>Plural</th><th>REST endpoint</th>';
-        echo '<th class="gallop-actions-col">Actions</th>';
+        echo '<th>' . esc_html__('Slug', 'gallop') . '</th>';
+        echo '<th>' . esc_html__('Singular', 'gallop') . '</th>';
+        echo '<th>' . esc_html__('Plural', 'gallop') . '</th>';
+        echo '<th>' . esc_html__('REST endpoint', 'gallop') . '</th>';
+        echo '<th class="gallop-actions-col">' . esc_html__('Actions', 'gallop') . '</th>';
         echo '</tr></thead><tbody>';
         foreach ($defs as $d) {
-            $restUrl = esc_url(rest_url('wp/v2/' . $d->slug));
+            $restUrl = rest_url('wp/v2/' . $d->slug);
+            $confirm = sprintf(
+                /* translators: %s: plural label of the post type being deleted */
+                __('Delete the "%s" post type? Existing posts remain in the database but become inaccessible until you re-add the post type.', 'gallop'),
+                $d->plural
+            );
+
             echo '<tr>';
             echo '<td><code>' . esc_html($d->slug) . '</code></td>';
             echo '<td>' . esc_html($d->singular) . '</td>';
             echo '<td>' . esc_html($d->plural) . '</td>';
-            echo '<td><a href="' . $restUrl . '" target="_blank"><code>/wp-json/wp/v2/' . esc_html($d->slug) . '</code></a></td>';
+            echo '<td><a href="' . esc_url($restUrl) . '" target="_blank" rel="noopener noreferrer"><code>/wp-json/wp/v2/' . esc_html($d->slug) . '</code></a></td>';
             echo '<td class="gallop-actions-col">';
-            $confirm = sprintf(
-                'Delete the &quot;%s&quot; post type?\n\nExisting posts remain in the database but become inaccessible until you re-add the post type.',
-                esc_js($d->plural)
-            );
-            echo '<form method="post" action="' . $postAction . '" style="display:inline" onsubmit="return confirm(\'' . $confirm . '\');">';
-            echo '<input type="hidden" name="action" value="' . self::DELETE . '">';
+            echo '<form method="post" action="' . esc_url($postAction) . '" style="display:inline" onsubmit="return confirm(' . esc_attr(wp_json_encode($confirm)) . ');">';
+            echo '<input type="hidden" name="action" value="' . esc_attr(self::DELETE) . '">';
             echo '<input type="hidden" name="slug" value="' . esc_attr($d->slug) . '">';
-            echo $nonce;
-            echo '<button type="submit" class="gallop-delete-btn" aria-label="Delete ' . esc_attr($d->plural) . '">Delete</button>';
+            wp_nonce_field(self::NONCE);
+            echo '<button type="submit" class="gallop-delete-btn" aria-label="' . esc_attr(sprintf(/* translators: %s: post type plural label */ __('Delete %s', 'gallop'), $d->plural)) . '">' . esc_html__('Delete', 'gallop') . '</button>';
             echo '</form>';
             echo '</td></tr>';
         }
         echo '</tbody></table>';
     }
 
-    private function renderForm(string $postAction, string $nonce): void
+    private function renderForm(): void
     {
-        echo '<h2 style="margin-top:2em">Add a post type</h2>';
-        echo '<form method="post" action="' . $postAction . '">';
-        echo '<input type="hidden" name="action" value="' . self::SAVE . '">';
-        echo $nonce;
-        echo '<table class="form-table"><tbody><tr>';
-        echo '<th><label for="gallop-name">Name (plural)</label></th>';
-        echo '<td><input name="rest_base" id="gallop-name" type="text" class="regular-text" required placeholder="Books">';
-        echo ' <p class="description">e.g. "Books", "Team Members", "Case Studies". The REST endpoint and singular label are derived automatically.</p>';
-        echo '</td></tr></tbody></table>';
-        submit_button('Add post type');
+        $postAction = admin_url('admin-post.php');
+
+        echo '<h2 style="margin-top:2em">' . esc_html__('Add a post type', 'gallop') . '</h2>';
+        echo '<form method="post" action="' . esc_url($postAction) . '">';
+        echo '<input type="hidden" name="action" value="' . esc_attr(self::SAVE) . '">';
+        wp_nonce_field(self::NONCE);
+        echo '<table class="form-table"><tbody>';
+        echo '<tr>';
+        echo '<th><label for="gallop-plural">' . esc_html__('Plural name', 'gallop') . '</label></th>';
+        echo '<td><input name="plural" id="gallop-plural" type="text" class="regular-text" required placeholder="' . esc_attr__('Books', 'gallop') . '">';
+        echo ' <p class="description">' . esc_html__('Used for the admin menu and the REST endpoint slug (lowercased and hyphenated).', 'gallop') . '</p>';
+        echo '</td></tr>';
+        echo '<tr>';
+        echo '<th><label for="gallop-singular">' . esc_html__('Singular name', 'gallop') . '</label></th>';
+        echo '<td><input name="singular" id="gallop-singular" type="text" class="regular-text" required placeholder="' . esc_attr__('Book', 'gallop') . '">';
+        echo ' <p class="description">' . esc_html__('Used in admin labels for a single item (e.g. "Add New Book").', 'gallop') . '</p>';
+        echo '</td></tr>';
+        echo '</tbody></table>';
+        submit_button(__('Add post type', 'gallop'));
         echo '</form>';
-    }
-
-    /** @return array{0: string, 1: string} */
-    private static function deriveLabels(string $slug): array
-    {
-        $plural = ucwords(str_replace(['-', '_'], ' ', $slug));
-        $singular = self::singularize($plural);
-        return [$singular, $plural];
-    }
-
-    private static function singularize(string $word): string
-    {
-        return preg_match('/s$/i', $word) ? (string)preg_replace('/s$/i', '', $word) : $word;
     }
 
     private static function slugIsReserved(string $slug): bool
     {
-        return post_type_exists($slug)
-            || post_type_exists(self::singularize($slug))
-            || post_type_exists($slug . 's');
+        return post_type_exists($slug);
     }
 }
