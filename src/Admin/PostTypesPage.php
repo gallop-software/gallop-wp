@@ -62,7 +62,7 @@ final class PostTypesPage
     public function handleSave(): void
     {
         if (!current_user_can('manage_options')) {
-            wp_die('Forbidden', 403);
+            wp_die(esc_html__('Forbidden', 'gallop'), '', ['response' => 403]);
         }
         check_admin_referer(self::NONCE);
 
@@ -88,7 +88,7 @@ final class PostTypesPage
     public function handleDelete(): void
     {
         if (!current_user_can('manage_options')) {
-            wp_die('Forbidden', 403);
+            wp_die(esc_html__('Forbidden', 'gallop'), '', ['response' => 403]);
         }
         check_admin_referer(self::NONCE);
 

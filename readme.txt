@@ -85,6 +85,14 @@ No. Posts, pages, media, and built-in taxonomies are left alone. Only post types
 
 Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes the `gallop_post_types`, `gallop_nextjs_production_url`, and `gallop_trust_forwarded_ip` options plus any leftover login rate-limit transients. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall.
 
+== Privacy ==
+
+Gallop does not send any data to external services. All data stays on your WordPress site.
+
+The `/gallop/v1/auth/login` endpoint authenticates users with WordPress's built-in `wp_signon()` and sets the standard WordPress auth cookies. To mitigate brute-force attacks, Gallop temporarily stores failed-login counters in WordPress transients keyed by username and by the requesting IP address. These counters expire automatically (typically within 15 minutes) and are removed on plugin uninstall.
+
+No personal data is shared with third parties. No tracking, analytics, or telemetry is performed.
+
 == Changelog ==
 
 = 0.2.1 =

@@ -48,4 +48,13 @@ if (is_file($composerAutoload)) {
     });
 }
 
+register_activation_hook(__FILE__, static function (): void {
+    (new Gallop\PostTypes\Registry(new Gallop\PostTypes\Storage()))->registerAll();
+    flush_rewrite_rules();
+});
+
+register_deactivation_hook(__FILE__, static function (): void {
+    flush_rewrite_rules();
+});
+
 (new Gallop\Plugin())->boot();
