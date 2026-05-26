@@ -4,7 +4,7 @@ Tags: headless, rest-api, custom-post-types, decoupled
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.2.4
+Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -110,18 +110,8 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Changelog ==
 
-= 0.2.4 =
-* Compliance: add direct-file-access protection to all PHP files, prefix global variables, and bump tested-up-to to WordPress 7.0 (Plugin Check fixes).
-
-= 0.2.3 =
-* Fix: reject reserved post type slugs (e.g. `posts`, `page`, `author`) and slugs over 20 characters when adding a post type.
-
-= 0.2.2 =
-* Fix: saving or deleting a post type now keeps you on the Post Types tab instead of switching to Settings.
-* Docs: documented the `gallop_trust_forwarded_ip` filter and the "Trust proxy IP headers" setting.
-
-= 0.2.1 =
-* Initial public release.
+= 0.1.0 =
+* Initial release.
 * Admin UI for registering REST-enabled custom post types.
 * `/gallop/v1/post` and `/gallop/v1/category` endpoints with optional Yoast SEO payloads.
 * Cookie-based REST auth endpoints (`/auth/login`, `/auth/logout`, `/auth/session`) with per-username/IP rate limiting.
@@ -129,5 +119,5 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Upgrade Notice ==
 
-= 0.2.1 =
-Initial public release.
+= 0.1.0 =
+Initial release.
