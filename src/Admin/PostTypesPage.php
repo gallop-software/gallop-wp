@@ -140,7 +140,7 @@ final class PostTypesPage
 
     private function redirect(string $msg, string $slug = ''): never
     {
-        $args = ['gallop_msg' => $msg];
+        $args = ['gallop_msg' => $msg, 'tab' => 'post-types'];
         if ($slug !== '') {
             $args['slug'] = $slug;
         }

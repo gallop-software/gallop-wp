@@ -40,10 +40,15 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 * `gallop_auth_login_failed` — fires after a failed REST login. Args: `string $username`, `WP_REST_Request $request`.
 * `gallop_auth_logout` — fires after a REST logout. Args: `WP_User $user`, `WP_REST_Request $request`.
 
+= Filter hooks =
+
+* `gallop_trust_forwarded_ip` — filter the boolean controlling whether reverse-proxy IP headers (`CF-Connecting-IP`, `X-Forwarded-For`) are trusted when rate-limiting REST auth. Defaults to the "Trust proxy IP headers" setting. Only enable behind a trusted proxy that overwrites these headers, otherwise the per-IP rate limit can be bypassed by spoofing them.
+
 = Data stored =
 
 * `gallop_post_types` (option) — your custom post type definitions.
 * `gallop_nextjs_production_url` (option) — the redirect target, if configured.
+* `gallop_trust_forwarded_ip` (option) — whether to trust reverse-proxy IP headers when rate-limiting auth (default off).
 * `gallop_auth_*` (transients) — short-lived login rate-limit counters.
 
 == Installation ==
@@ -72,6 +77,10 @@ No. The redirect runs on `template_redirect` only, skips any request with a `pre
 = Is the login endpoint rate-limited? =
 
 Yes. Five failed attempts per username + client IP within fifteen minutes return HTTP 429 until the window expires. Successful logins clear the counter.
+
+= What is the "Trust proxy IP headers" setting? =
+
+By default Gallop uses `REMOTE_ADDR` for the per-IP portion of the login rate limit. If your site sits behind a trusted reverse proxy (Cloudflare, a load balancer, etc.) that overwrites the client-IP headers, enable **Trust proxy IP headers** on the Gallop settings screen so `CF-Connecting-IP` / `X-Forwarded-For` are used instead. Leave it off on direct-served sites — turning it on without a trusted proxy lets attackers spoof those headers to bypass the rate limit. The setting can also be overridden in code via the `gallop_trust_forwarded_ip` filter.
 
 = Do I need Yoast SEO? =
 
