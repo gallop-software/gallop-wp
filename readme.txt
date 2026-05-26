@@ -4,7 +4,7 @@ Tags: headless, rest-api, custom-post-types, decoupled
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,10 @@ The `/gallop/v1/auth/login` endpoint authenticates users with WordPress's built-
 No personal data is shared with third parties. No tracking, analytics, or telemetry is performed.
 
 == Changelog ==
+
+= 0.2.2 =
+* Fix: saving or deleting a post type now keeps you on the Post Types tab instead of switching to Settings.
+* Docs: documented the `gallop_trust_forwarded_ip` filter and the "Trust proxy IP headers" setting.
 
 = 0.2.1 =
 * Initial public release.
