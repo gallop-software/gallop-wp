@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop\Admin;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop\Admin;
 
 use Gallop\PostTypes\Definition;
 use Gallop\PostTypes\Storage;

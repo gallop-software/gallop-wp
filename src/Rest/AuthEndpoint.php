@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop\Rest;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop\Rest;
 
 use Gallop\Admin\Settings;
 use WP_Error;

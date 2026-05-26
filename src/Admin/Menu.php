@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop\Admin;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop\Admin;
 
 final class Menu
 {

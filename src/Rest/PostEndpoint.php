@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop\Rest;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop\Rest;
 
 use WP_REST_Request;
 use WP_REST_Response;

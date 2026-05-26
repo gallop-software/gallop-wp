@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop;
 
 use Gallop\Admin\Menu;
 use Gallop\Admin\PostTypesPage;

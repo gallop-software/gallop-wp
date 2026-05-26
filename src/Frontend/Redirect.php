@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop\Frontend;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop\Frontend;
 
 use Gallop\Admin\Settings;
 

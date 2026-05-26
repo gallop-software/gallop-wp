@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Gallop\PostTypes;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-namespace Gallop\PostTypes;
 
 final class Storage
 {
