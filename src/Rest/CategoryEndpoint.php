@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 namespace Gallop\Rest;
 
 use WP_REST_Request;

@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 namespace Gallop\Admin;
 
 use Gallop\PostTypes\Definition;
@@ -26,7 +30,9 @@ final class PostTypesPage
             /* translators: %s: post type slug */
             'duplicate' => ['error',   __('A post type with slug <code>%s</code> already exists. Delete it below first, or choose a different name.', 'gallop')],
             /* translators: %s: post type slug */
-            'reserved'  => ['error',   __('The slug <code>%s</code> is already used by WordPress or another plugin. Choose a different name.', 'gallop')],
+            'reserved'  => ['error',   __('The slug <code>%s</code> is reserved by WordPress or already used by another plugin. Choose a different name.', 'gallop')],
+            /* translators: %s: post type slug */
+            'too_long'  => ['error',   __('The slug <code>%s</code> is too long. Post type slugs must be 20 characters or fewer.', 'gallop')],
         ];
     }
 
@@ -73,6 +79,9 @@ final class PostTypesPage
 
         if (!$def->isValid()) {
             $this->redirect('invalid');
+        }
+        if (strlen($def->slug) > 20) {
+            $this->redirect('too_long', $def->slug);
         }
         if ($this->storage->find($def->slug) !== null) {
             $this->redirect('duplicate', $def->slug);
@@ -233,6 +242,19 @@ final class PostTypesPage
 
     private static function slugIsReserved(string $slug): bool
     {
-        return post_type_exists($slug);
+        if (post_type_exists($slug)) {
+            return true;
+        }
+
+        // Keys WordPress reserves or that collide with core query vars; these can
+        // break permalinks/queries even when post_type_exists() returns false.
+        $reserved = [
+            'post', 'page', 'attachment', 'revision', 'nav_menu_item',
+            'custom_css', 'customize_changeset', 'oembed_cache', 'user_request',
+            'wp_block', 'action', 'author', 'order', 'theme',
+            'posts', 'pages', 'type', 'name', 'date', 'tag', 'category',
+        ];
+
+        return in_array($slug, $reserved, true);
     }
 }

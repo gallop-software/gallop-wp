@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Gallop
  * Description: Headless WordPress plugin that registers custom post types and exposes them via the WP REST API for consumption by a Next.js front end.
- * Version:     0.2.2
+ * Version:     0.2.4
  * Author:      Gallop Software
  * Author URI:  https://gallop.software
  * License:     GPLv2 or later
@@ -31,9 +31,9 @@ if (version_compare(PHP_VERSION, '8.1.0', '<')) {
     return;
 }
 
-$composerAutoload = __DIR__ . '/vendor/autoload.php';
-if (is_file($composerAutoload)) {
-    require $composerAutoload;
+$gallop_composer_autoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($gallop_composer_autoload)) {
+    require $gallop_composer_autoload;
 } else {
     spl_autoload_register(static function (string $class): void {
         $prefix = 'Gallop\\';

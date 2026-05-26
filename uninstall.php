@@ -45,25 +45,32 @@ if (!function_exists('gallop_delete_auth_transients')) {
     }
 }
 
-$options = [
-    'gallop_post_types',
-    'gallop_nextjs_production_url',
-    'gallop_trust_forwarded_ip',
-];
+if (!function_exists('gallop_uninstall')) {
+    function gallop_uninstall(): void
+    {
+        $options = [
+            'gallop_post_types',
+            'gallop_nextjs_production_url',
+            'gallop_trust_forwarded_ip',
+        ];
 
-if (is_multisite()) {
-    $siteIds = get_sites(['fields' => 'ids', 'number' => 0]);
-    foreach ($siteIds as $siteId) {
-        switch_to_blog((int) $siteId);
-        foreach ($options as $option) {
-            delete_option($option);
+        if (is_multisite()) {
+            $site_ids = get_sites(['fields' => 'ids', 'number' => 0]);
+            foreach ($site_ids as $site_id) {
+                switch_to_blog((int) $site_id);
+                foreach ($options as $option) {
+                    delete_option($option);
+                }
+                gallop_delete_auth_transients();
+                restore_current_blog();
+            }
+        } else {
+            foreach ($options as $option) {
+                delete_option($option);
+            }
+            gallop_delete_auth_transients();
         }
-        gallop_delete_auth_transients();
-        restore_current_blog();
     }
-} else {
-    foreach ($options as $option) {
-        delete_option($option);
-    }
-    gallop_delete_auth_transients();
 }
+
+gallop_uninstall();

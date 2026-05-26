@@ -2,9 +2,9 @@
 Contributors: gallopsoftware
 Tags: headless, rest-api, custom-post-types, decoupled
 Requires at least: 6.4
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.2.2
+Stable tag: 0.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,12 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 
 Requires PHP 8.1 or higher. The plugin will refuse to boot and show an admin notice on older PHP versions.
 
+== Screenshots ==
+
+1. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
+2. Settings tab: point Gallop at your Next.js production URL and configure proxy IP trust for auth rate limiting.
+3. The Gallop REST API in action — a request to the `gallop/v1` namespace returning post, SEO, and site data.
+
 == Frequently Asked Questions ==
 
 = Do I have to use Next.js? =
@@ -103,6 +109,12 @@ The `/gallop/v1/auth/login` endpoint authenticates users with WordPress's built-
 No personal data is shared with third parties. No tracking, analytics, or telemetry is performed.
 
 == Changelog ==
+
+= 0.2.4 =
+* Compliance: add direct-file-access protection to all PHP files, prefix global variables, and bump tested-up-to to WordPress 7.0 (Plugin Check fixes).
+
+= 0.2.3 =
+* Fix: reject reserved post type slugs (e.g. `posts`, `page`, `author`) and slugs over 20 characters when adding a post type.
 
 = 0.2.2 =
 * Fix: saving or deleting a post type now keeps you on the Post Types tab instead of switching to Settings.

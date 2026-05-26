@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 namespace Gallop\Rest;
 
 use WP_REST_Request;
@@ -55,6 +59,7 @@ final class PostEndpoint
 
     private function buildPostData(\WP_Post $post): array
     {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- applying WordPress core's `the_content` filter to render post content, not defining a new hook.
         $rendered = apply_filters('the_content', do_blocks($post->post_content));
 
         return [
