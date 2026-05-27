@@ -1,6 +1,6 @@
 === Gallop ===
 Contributors: gallopsoftware
-Tags: headless, rest-api, custom-post-types, decoupled
+Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
@@ -8,17 +8,20 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Headless WordPress for Next.js: register custom post types and expose post, category, and auth data through a dedicated REST namespace.
+A purpose-built REST API for Next.js websites — fetch a page's post, SEO, and site data in one request, with built-in cookie login support for authenticated front ends.
 
 == Description ==
 
-Gallop is a lightweight headless-WordPress toolkit aimed at sites that render their public front end with Next.js (or any framework that can call a REST API) while continuing to author content in WordPress.
+Gallop is a headless-WordPress API layer built for Next.js. Instead of stitching together multiple core WordPress REST calls per page, your Next.js front end hits a single Gallop endpoint and gets back exactly what the page needs — post body, SEO block, and site block — in one round trip.
 
-It does three things:
+**The API is the point.** Gallop exposes a dedicated, Next.js-shaped REST namespace (`/wp-json/gallop/v1`) so your front-end code stays simple: one fetch, one response, ready to render.
 
-1. **UI-driven custom post types.** Add, edit, and remove public, REST-enabled custom post types from a Gallop admin screen — no code, no `register_post_type()` boilerplate. Definitions are stored as an option and registered on every request.
-2. **A purpose-built REST namespace (`/wp-json/gallop/v1`).** Endpoints return the exact shape a Next.js page typically needs (post body, SEO block, site block) in one round trip, avoiding multiple core REST calls per page.
-3. **Optional front-end redirect.** Set your Next.js production URL in settings and Gallop will 301-redirect public WordPress front-end requests to the matching path on your headless host, while leaving the admin, REST API, and preview flows untouched.
+Key features:
+
+1. **A Next.js-shaped REST API (`/wp-json/gallop/v1`).** Resolve a front-end URI straight to a post or category and receive the post body, an SEO block, and a site block in a single response — no chaining `/wp/v2/posts`, `/wp/v2/media`, and taxonomy calls per page.
+2. **Built-in login support.** First-class authentication endpoints let a Next.js front end log users in, check the current session, and log out using WordPress's standard auth cookies — with brute-force rate limiting out of the box. No JWT plumbing to build yourself.
+3. **UI-driven custom post types.** Register public, REST-enabled custom post types from a Gallop admin screen — no `register_post_type()` boilerplate — so the content you create is immediately available through the Gallop API.
+4. **Optional front-end redirect.** Set your Next.js production URL and Gallop will 301-redirect public WordPress front-end requests to the matching path on your headless host, while leaving the admin, REST API, and preview flows untouched.
 
 = REST endpoints =
 
@@ -29,6 +32,15 @@ All endpoints live under the `gallop/v1` namespace.
 * `POST /gallop/v1/auth/login` — Cookie-based login for a headless front end. Accepts `username`, `password`, and optional `remember`. Rate-limited per username/IP.
 * `POST /gallop/v1/auth/logout` — Log out the current user.
 * `GET  /gallop/v1/auth/session` — Return the current user payload, or `{ "user": null }` when not logged in.
+
+= Login support =
+
+Gallop ships with everything a Next.js site needs to authenticate users against WordPress — no extra plugin, no JWT layer to wire up:
+
+* **Cookie-based login** via `POST /gallop/v1/auth/login`, which calls WordPress's built-in `wp_signon()` and sets the standard auth cookies. A Next.js front end on the same registered domain can then make authenticated requests with credentials included.
+* **Session checks** via `GET /gallop/v1/auth/session`, so your front end can tell whether a visitor is logged in and render accordingly.
+* **Logout** via `POST /gallop/v1/auth/logout`.
+* **Brute-force protection** out of the box: five failed attempts per username + client IP within fifteen minutes return HTTP 429 until the window expires, with optional reverse-proxy IP awareness for sites behind Cloudflare or a load balancer.
 
 = SEO integration =
 
@@ -55,16 +67,16 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 
 1. Upload the `gallop` folder to `/wp-content/plugins/`, or install the ZIP from the Plugins screen.
 2. Activate **Gallop** from the Plugins screen.
-3. Open **Gallop** in the admin menu to register custom post types and (optionally) set your Next.js production URL.
-4. Point your headless front end at `https://your-wp-site.example/wp-json/gallop/v1`.
+3. Point your Next.js front end at `https://your-wp-site.example/wp-json/gallop/v1` and start fetching `post`, `category`, and `auth` endpoints.
+4. (Optional) Open **Gallop** in the admin menu to register custom post types and set your Next.js production URL.
 
 Requires PHP 8.1 or higher. The plugin will refuse to boot and show an admin notice on older PHP versions.
 
 == Screenshots ==
 
-1. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
+1. The Gallop REST API in action — a request to the `gallop/v1` namespace returning post, SEO, and site data.
 2. Settings tab: point Gallop at your Next.js production URL and configure proxy IP trust for auth rate limiting.
-3. The Gallop REST API in action — a request to the `gallop/v1` namespace returning post, SEO, and site data.
+3. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
 
 == Frequently Asked Questions ==
 
