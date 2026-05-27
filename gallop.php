@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Gallop
- * Description: Headless WordPress plugin that registers custom post types and exposes them via the WP REST API for consumption by a Next.js front end.
+ * Plugin Name: Gallop WP
+ * Description: A purpose-built REST API for Next.js websites — fetch a page's post, SEO, and site data in one request, with built-in cookie login support for authenticated front ends.
  * Version:     0.1.0
  * Author:      Gallop Software
  * Author URI:  https://gallop.software
@@ -24,7 +24,7 @@ if (version_compare(PHP_VERSION, '8.1.0', '<')) {
         echo '<div class="notice notice-error"><p>' . sprintf(
             /* translators: 1: Plugin name (wrapped in <strong>), 2: Current PHP version. */
             esc_html__('%1$s requires PHP 8.1 or higher. Current version: %2$s', 'gallop'),
-            '<strong>Gallop</strong>',
+            '<strong>Gallop WP</strong>',
             esc_html(PHP_VERSION)
         ) . '</p></div>';
     });
