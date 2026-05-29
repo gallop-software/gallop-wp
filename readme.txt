@@ -8,7 +8,7 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A purpose-built REST API for Next.js websites — fetch a page's post, SEO, and site data in one request, with built-in cookie login support for authenticated front ends.
+A REST API for headless Next.js sites: a page's post, SEO, and site data in one request, plus cookie login for authenticated front ends.
 
 == Description ==
 
@@ -75,8 +75,9 @@ Requires PHP 8.1 or higher. The plugin will refuse to boot and show an admin not
 == Screenshots ==
 
 1. The Gallop REST API in action — a request to the `gallop/v1` namespace returning post, SEO, and site data.
-2. Settings tab: point Gallop at your Next.js production URL and configure proxy IP trust for auth rate limiting.
-3. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
+2. Login UI: the headless auth flow signing in against `/gallop/v1/auth/login` with standard WordPress cookies.
+3. Settings tab: point Gallop at your Next.js production URL and configure proxy IP trust for auth rate limiting.
+4. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
 
 == Frequently Asked Questions ==
 
