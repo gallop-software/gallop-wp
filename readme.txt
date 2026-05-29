@@ -1,4 +1,4 @@
-=== Gallop WP ===
+=== Gallop ===
 Contributors: gallopsoftware
 Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
