@@ -4,7 +4,7 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -139,6 +139,9 @@ The `/gallop/v1/auth/login` endpoint authenticates users with WordPress's built-
 No personal data is shared with third parties. No tracking, analytics, or telemetry is performed.
 
 == Changelog ==
+
+= 0.1.1 =
+* Documentation: expanded the plugin description.
 
 = 0.1.0 =
 * Initial release.
