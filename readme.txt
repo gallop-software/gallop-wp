@@ -32,7 +32,7 @@ Editing works the way your team already knows. Publish or update a post or page 
 
 = Settings and custom post types, configured from WordPress =
 
-Point Gallop at your Next.js production URL and it 301-redirects public WordPress front-end requests to the matching path on your headless host. Admin, REST API, and previews are left untouched. The same screen exposes the **Trust proxy IP headers** toggle for sites behind Cloudflare or a load balancer.
+Point Gallop at your Next.js production URL and it 301-redirects public WordPress front-end requests to the matching path on your headless host. Admin, REST API, and previews are left untouched.
 
 Register REST-enabled custom post types from the Post Types tab and they're immediately available through the Gallop namespace — no `register_post_type()` boilerplate, no developer round trip. Core post types are left alone, and content you create survives a deactivate/uninstall.
 
