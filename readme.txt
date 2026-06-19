@@ -14,6 +14,8 @@ A REST API for headless Next.js sites: a page's post, SEO, and site data in one 
 
 Keep the WordPress you write in. Lose the theme that slows you down. Gallop pipes every page's content, SEO, and settings straight into your Next.js front end in a single request, so you keep the WordPress publishing workflow your team relies on and still ship a fast, decoupled front end.
 
+[Homepage &amp; documentation](https://gallop.software/headless-wordpress)
+
 Instead of stitching together multiple core WordPress REST calls per page, your Next.js front end hits a single Gallop endpoint and gets back exactly what the page needs — the post body, an SEO block, and a site block — already joined, already resolved, ready to render in one round trip.
 
 **The API is the point.** Gallop exposes a dedicated, Next.js-shaped REST namespace (`/wp-json/gallop/v1`) so your front-end code stays simple: one fetch, one response, ready to render.
