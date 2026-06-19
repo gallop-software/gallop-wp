@@ -12,13 +12,25 @@ A REST API for headless Next.js sites: a page's post, SEO, and site data in one 
 
 == Description ==
 
-Keep the WordPress you write in. Lose the theme that slows you down. Gallop pipes every page's content, SEO, and settings straight into your Next.js front end in a single request, so you keep the WordPress publishing workflow your team relies on and still ship a fast, decoupled front end.
+Gallop is the headless WordPress REST API for Next.js that's FAST and SIMPLE. Keep the WordPress you write in, lose the theme that slows you down — and ship your whole page from one request.
 
-[Homepage &amp; documentation](https://gallop.software/headless-wordpress)
+> The WordPress editing experience your team already knows, with the speed of a fully decoupled Next.js front end. One endpoint, one response, done.
 
-Instead of stitching together multiple core WordPress REST calls per page, your Next.js front end hits a single Gallop endpoint and gets back exactly what the page needs — the post body, an SEO block, and a site block — already joined, already resolved, ready to render in one round trip.
+[Visit the Gallop homepage &amp; documentation →](https://gallop.software/headless-wordpress)
 
-**The API is the point.** Gallop exposes a dedicated, Next.js-shaped REST namespace (`/wp-json/gallop/v1`) so your front-end code stays simple: one fetch, one response, ready to render.
+Most headless setups make you stitch together a waterfall of core WordPress REST calls per page — `/wp/v2/posts`, `/wp/v2/media`, meta, and taxonomy — then bolt on a JWT layer and an auth service just to log a user in. Gallop replaces all of that.
+
+**One request. The whole page.** Hand Gallop a URI and it returns the post body, an SEO block, and your global site data — already joined, already resolved, ready to render. **The API is the point:** a dedicated, Next.js-shaped REST namespace (`/wp-json/gallop/v1`) so your front-end code stays simple — one fetch, one response, ready to render.
+
+#### Why choose Gallop?
+
+* **One round trip instead of five.** Everything a page needs — `post`, `seo`, and `site` — in a single response.
+* **No JWT, no API keys, no separate auth service.** Cookie-based login is built in and wired to WordPress's own `wp_signon()`.
+* **SEO done for you.** With Yoast active, the `seo` block ships search-ready out of the box.
+* **No-code custom post types.** Register REST-enabled CPTs from the admin — no `register_post_type()` boilerplate.
+* **Instant publishing.** Publish in WordPress and Gallop revalidates the affected Next.js routes automatically — no full redeploy.
+* **Framework-agnostic JSON.** Next.js is the reference target, but any HTTP client can consume the API.
+* **Keep your workflow.** Your editors keep the exact WordPress publishing experience they already rely on.
 
 = Everything a page needs, in one request =
 
@@ -28,19 +40,31 @@ The SEO is done for you. With Yoast active, the `seo` block is populated straigh
 
 = Login, editing, and cache revalidation, already wired up =
 
+https://vimeo.com/1200535505
+
 Moving off a WordPress template usually means rebuilding everything it gave you for free. Gallop ships with it already done. Cookie-based login is wired into the front end through the Gallop plugin, so editors sign in on your Next.js site with their normal WordPress credentials — no JWT layer, no separate auth service to stand up, and no API keys to manage.
 
 Editing works the way your team already knows. Publish or update a post or page in WordPress and Gallop tells your Next.js site to revalidate the affected routes and clear their cache, so changes and new posts go live instantly with no full redeploy. Login, editing, and cache invalidation are all baked in, so you keep the WordPress workflow your team relies on and still ship a fast Next.js front end.
 
 = Settings and custom post types, configured from WordPress =
 
+https://vimeo.com/1196416170
+
 Point Gallop at your Next.js production URL and it 301-redirects public WordPress front-end requests to the matching path on your headless host. Admin, REST API, and previews are left untouched.
 
 Register REST-enabled custom post types from the Post Types tab and they're immediately available through the Gallop namespace — no `register_post_type()` boilerplate, no developer round trip. Core post types are left alone, and content you create survives a deactivate/uninstall.
 
-= Real sites running Gallop =
+= Trusted on real production sites =
 
-Gallop powers production sites today — among them dougnewby.com (30k+ images, 5k+ pages, 3k+ blog posts, fetched from WordPress), douglasnewby.com, dallasmodernhomesforsale.com (multiple domains reading from one WordPress install), tpaynelaw.com, and cmwelectric.com. Every one edits in WordPress and ships a fast Next.js front end — headless content, real Google rankings and structured data, no theme holding it back, and the same WordPress publishing experience.
+Gallop isn't a proof of concept — it powers live production sites today:
+
+* **douglasnewby.com**
+* **cmwelectric.com**
+* **winx.gallop.software**
+
+Every one edits in WordPress and ships a fast Next.js front end — headless content, real Google rankings and structured data, no theme holding it back, and the same WordPress publishing experience your team already knows.
+
+[See how Gallop powers headless WordPress →](https://gallop.software/headless-wordpress)
 
 = REST endpoints =
 
