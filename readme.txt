@@ -4,7 +4,7 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -168,6 +168,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Changelog ==
 
+= 1.0.0 =
+* First stable release. No functional changes from 0.2.0: the REST API and its response shapes are now considered stable.
+
 = 0.2.0 =
 * Added `/gallop/v1/posts` for filtered collections: post type, category, id list, meta filtering, ordering, paging, and field selection. Defaults to 10 per page; a site can set a ceiling with `gallop_posts_page_max`. The response reports the `size` and `offset` actually used.
 * Added `/gallop/v1/posts/list`, a lightweight index of every published post of a type, for sitemaps and static builds. Capped at 5,000 by default (`gallop_posts_list_max`) and reports `truncated` when the cap is reached.
@@ -189,6 +192,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Optional Next.js production URL redirect for public front-end requests.
 
 == Upgrade Notice ==
+
+= 1.0.0 =
+First stable release. No functional changes from 0.2.0.
 
 = 0.2.0 =
 Adds collection and index endpoints, id and slug lookups, and richer post payloads. Existing requests and fields are unchanged, but rendered block content no longer carries the stray `<p>` and `<br>` tags earlier versions added. Check any front-end styling that relied on them.
