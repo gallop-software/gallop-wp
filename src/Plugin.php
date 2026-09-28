@@ -17,6 +17,7 @@ use Gallop\PostTypes\Storage as PostTypesStorage;
 use Gallop\Rest\AuthEndpoint;
 use Gallop\Rest\PostEndpoint;
 use Gallop\Rest\CategoryEndpoint;
+use Gallop\Rest\PostsEndpoint;
 
 final class Plugin
 {
@@ -27,7 +28,9 @@ final class Plugin
 
         add_action('init', [$postTypesRegistry, 'registerAll']);
 
-        add_action('rest_api_init', [new PostEndpoint(), 'register']);
+        $postEndpoint = new PostEndpoint();
+        add_action('rest_api_init', [$postEndpoint, 'register']);
+        add_action('rest_api_init', [new PostsEndpoint($postEndpoint), 'register']);
         add_action('rest_api_init', [new CategoryEndpoint(), 'register']);
         add_action('rest_api_init', [new AuthEndpoint(), 'register']);
 

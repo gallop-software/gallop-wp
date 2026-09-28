@@ -2,9 +2,9 @@
 Contributors: gallopsoftware
 Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.1.1
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,11 +70,13 @@ Every one edits in WordPress and ships a fast Next.js front end — headless con
 
 All endpoints live under the `gallop/v1` namespace.
 
-* `GET|POST /gallop/v1/post` — Resolve a front-end URI to a post and return `post`, `seo`, and `site` payloads. Accepts `uri` as a parameter.
+* `GET|POST /gallop/v1/post` — Resolve a post and return `post`, `seo`, and `site` payloads. Accepts `uri`, `id`, or `slug` with `type`.
+* `GET|POST /gallop/v1/posts` — A filtered, paged collection of posts of one `type`. Accepts `category`, `include`, `meta_key` / `meta_value` / `meta_compare`, `orderby`, `order`, `size`, `offset`, and `fields`.
+* `GET|POST /gallop/v1/posts/list` — Slug, uri, and modified date for every published post of a `type`, for sitemaps and static builds. Optional `parent`.
 * `POST /gallop/v1/category` — Resolve a category URI to a term and return `category`, `seo`, and `site` payloads.
 * `POST /gallop/v1/auth/login` — Cookie-based login for a headless front end. Accepts `username`, `password`, and optional `remember`. Rate-limited per username/IP.
 * `POST /gallop/v1/auth/logout` — Log out the current user.
-* `GET  /gallop/v1/auth/session` — Return the current user payload, or `{ "user": null }` when not logged in.
+* `GET  /gallop/v1/auth/session` — Return the current user payload and a `wp_rest` nonce, or `{ "user": null, "nonce": null }` when not logged in.
 
 = Login support =
 
@@ -166,6 +168,16 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Changelog ==
 
+= 0.2.0 =
+* Added `/gallop/v1/posts` for filtered collections: post type, category, id list, meta filtering, ordering, paging, and field selection. Defaults to 10 per page; a site can set a ceiling with `gallop_posts_page_max`. The response reports the `size` and `offset` actually used.
+* Added `/gallop/v1/posts/list`, a lightweight index of every published post of a type, for sitemaps and static builds. Capped at 5,000 by default (`gallop_posts_list_max`) and reports `truncated` when the cap is reached.
+* `/gallop/v1/post` can now resolve by `id`, or by `slug` together with `type`, as well as by `uri`. `uri` lookups behave exactly as before.
+* The `post` payload gains `uri`, `link`, `excerpt`, `featuredImage`, `author`, and `categories`. Existing fields are unchanged.
+* `/gallop/v1/auth/login` and `/auth/session` now also return a `wp_rest` nonce, so a browser session can make cookie-authenticated REST requests.
+* New filters to extend payloads without forking: `gallop_pre_post_data`, `gallop_post_data`, `gallop_seo_data`, `gallop_site_data`, `gallop_category_data`, `gallop_category_seo_data`, `gallop_category_site_data`, `gallop_resolved_post`.
+* Only public post types registered with `show_in_rest` can be read by id, slug, or listing, and only meta keys registered for that type with `show_in_rest` can be filtered on. This matches core REST behaviour. Widen either with `gallop_post_type_queryable` or `gallop_meta_key_queryable`. Accepted meta comparisons can be changed with `gallop_meta_comparisons`.
+* Post content now renders with the post set as the global post, so shortcodes and dynamic blocks that read it see the right one. Block content is no longer run through `do_blocks()` twice, which had let `wpautop` add stray `<p>` and `<br>` tags.
+
 = 0.1.1 =
 * Documentation: expanded the plugin description.
 
@@ -177,6 +189,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Optional Next.js production URL redirect for public front-end requests.
 
 == Upgrade Notice ==
+
+= 0.2.0 =
+Adds collection and index endpoints, id and slug lookups, and richer post payloads. Existing requests and fields are unchanged, but rendered block content no longer carries the stray `<p>` and `<br>` tags earlier versions added. Check any front-end styling that relied on them.
 
 = 0.1.0 =
 Initial release.

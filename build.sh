@@ -22,6 +22,7 @@ rsync -a \
     --exclude='.git*' \
     --exclude='.DS_Store' \
     --exclude='.claude' \
+    --exclude='_data' \
     --exclude='.editorconfig' \
     --exclude='.distignore' \
     --exclude='.phpcs.xml*' \

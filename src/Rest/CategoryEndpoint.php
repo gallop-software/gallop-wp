@@ -55,7 +55,7 @@ final class CategoryEndpoint
 
     private function buildCategoryData(\WP_Term $category): array
     {
-        return [
+        $data = [
             'termId' => $category->term_id,
             'name' => $category->name,
             'slug' => $category->slug,
@@ -63,12 +63,20 @@ final class CategoryEndpoint
             'parent' => $category->parent,
             'count' => $category->count,
         ];
+
+        /**
+         * Filter the category payload before it is returned.
+         *
+         * Term meta and other site-specific fields are added here rather than modelled
+         * by Gallop itself.
+         */
+        return apply_filters('gallop_category_data', $data, $category);
     }
 
     private function buildSeoData(\WP_Term $category): array|\stdClass
     {
         if (!function_exists('YoastSEO')) {
-            return new \stdClass();
+            return apply_filters('gallop_category_seo_data', new \stdClass(), $category);
         }
 
         $seo = YoastSEO()->meta->for_term($category->term_id, 'category');
@@ -88,10 +96,15 @@ final class CategoryEndpoint
 
     private function buildSiteData(\WP_Term $category): array
     {
-        return [
+        $data = [
             'permalink' => get_category_link($category->term_id),
             'siteTitle' => get_bloginfo('name'),
             'siteDescription' => get_bloginfo('description'),
         ];
+
+        /**
+         * Filter the site payload returned alongside a category.
+         */
+        return apply_filters('gallop_category_site_data', $data, $category);
     }
 }

@@ -76,11 +76,25 @@ final class AuthEndpoint
             );
         }
 
+        // wp_signon() sets the auth cookies with setcookie(), which does not populate
+        // $_COOKIE for the current request. wp_create_nonce() derives its nonce from
+        // wp_get_session_token(), which reads the logged-in cookie out of $_COOKIE --
+        // so without this the nonce handed back below is tied to an empty session
+        // token, and every request replaying it is rejected with a 403. Capture the
+        // cookie as core sets it and prime $_COOKIE so the nonce is generated against
+        // the real session.
+        $primeCookie = static function (string $loggedInCookie): void {
+            $_COOKIE[LOGGED_IN_COOKIE] = $loggedInCookie;
+        };
+        add_action('set_logged_in_cookie', $primeCookie);
+
         $user = wp_signon([
             'user_login' => $username,
             'user_password' => $password,
             'remember' => $remember,
         ], is_ssl());
+
+        remove_action('set_logged_in_cookie', $primeCookie);
 
         if ($user instanceof WP_Error) {
             set_transient($rateKey, $attempts + 1, self::RATE_LIMIT_WINDOW);
@@ -101,6 +115,13 @@ final class AuthEndpoint
 
         return new WP_REST_Response([
             'user' => $this->buildUserPayload($user),
+            // WordPress rejects a cookie-authenticated REST request carrying no
+            // matching wp_rest nonce -- rest_cookie_check_errors() drops it to user 0
+            // -- so a browser session is unusable without one. It can only be minted
+            // where the user is resolved, which is here: a later request has the
+            // cookies but no nonce yet, so it would be read as anonymous and could
+            // never bootstrap one for itself.
+            'nonce' => wp_create_nonce('wp_rest'),
         ], 200);
     }
 
@@ -118,11 +139,13 @@ final class AuthEndpoint
     public function session(): WP_REST_Response
     {
         if (!is_user_logged_in()) {
-            return new WP_REST_Response(['user' => null], 200);
+            return new WP_REST_Response(['user' => null, 'nonce' => null], 200);
         }
 
         return new WP_REST_Response([
             'user' => $this->buildUserPayload(wp_get_current_user()),
+            /** See login(): the nonce is minted where the user resolves. */
+            'nonce' => wp_create_nonce('wp_rest'),
         ], 200);
     }
 
