@@ -21,3 +21,39 @@
     width: 90px;
     text-align: left;
 }
+
+.gallop-key-reveal {
+    background: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    margin: 0 0 1em;
+    max-width: 46em;
+    padding: 12px 16px;
+}
+
+.gallop-key-reveal__row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.gallop-key-reveal__row input {
+    flex: 1 1 24em;
+    max-width: 100%;
+}
+
+.gallop-key-status {
+    margin-top: 0;
+}
+
+.gallop-key-notes {
+    color: #50575e;
+    list-style: disc;
+    margin: 1em 0 0 1.4em;
+    max-width: 46em;
+}
+
+.gallop-key-notes li {
+    margin-bottom: .5em;
+}

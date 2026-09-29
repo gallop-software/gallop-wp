@@ -2,9 +2,10 @@
 /**
  * Fires when the user deletes the Gallop plugin from the Plugins screen.
  *
- * Removes plugin-owned options and rate-limit transients. Posts created under
- * Gallop-registered custom post types are intentionally left in place so user
- * content survives an uninstall/reinstall cycle.
+ * Removes plugin-owned options, including the stored hash of the API key, and the
+ * plugin's transients. Posts created under Gallop-registered custom post types are
+ * intentionally left in place so user content survives an uninstall/reinstall
+ * cycle. So are comments: they belong to WordPress, not to this plugin.
  */
 
 declare(strict_types=1);
@@ -13,13 +14,16 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
-if (!function_exists('gallop_delete_auth_transients')) {
-    function gallop_delete_auth_transients(): void
+if (!function_exists('gallop_delete_transients')) {
+    /**
+     * @param string $prefix The start of the transients' names, such as 'gallop_auth_'.
+     */
+    function gallop_delete_transients(string $prefix): void
     {
         global $wpdb;
 
-        $like = $wpdb->esc_like('_transient_gallop_auth_') . '%';
-        $timeoutLike = $wpdb->esc_like('_transient_timeout_gallop_auth_') . '%';
+        $like = $wpdb->esc_like('_transient_' . $prefix) . '%';
+        $timeoutLike = $wpdb->esc_like('_transient_timeout_' . $prefix) . '%';
 
         // Direct query is intentional: this runs once at uninstall, has no caching surface,
         // and is the only way to enumerate transients by name prefix in the options table.
@@ -52,6 +56,15 @@ if (!function_exists('gallop_uninstall')) {
             'gallop_post_types',
             'gallop_nextjs_production_url',
             'gallop_trust_forwarded_ip',
+            'gallop_api_key_hash',
+            'gallop_api_key_permissions',
+        ];
+
+        // Login attempts, wrong API keys, and a key waiting to be shown.
+        $transients = [
+            'gallop_auth_',
+            'gallop_key_fail_',
+            'gallop_key_reveal_',
         ];
 
         if (is_multisite()) {
@@ -61,14 +74,18 @@ if (!function_exists('gallop_uninstall')) {
                 foreach ($options as $option) {
                     delete_option($option);
                 }
-                gallop_delete_auth_transients();
+                foreach ($transients as $prefix) {
+                    gallop_delete_transients($prefix);
+                }
                 restore_current_blog();
             }
         } else {
             foreach ($options as $option) {
                 delete_option($option);
             }
-            gallop_delete_auth_transients();
+            foreach ($transients as $prefix) {
+                gallop_delete_transients($prefix);
+            }
         }
     }
 }

@@ -1,0 +1,38 @@
+{
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "steps": [
+        {
+            "step": "defineWpConfigConsts",
+            "method": "rewrite-wp-config",
+            "consts": {
+                "WP_ENVIRONMENT_TYPE": "local",
+                "WP_DEBUG": true,
+                "WP_DEBUG_LOG": true,
+                "WP_DEBUG_DISPLAY": false,
+                "GALLOP_WP_API_KEY": "gallopwp_ForTestsOnly0123456789abcdefghijklmnopqrstu"
+            }
+        },
+        {
+            "step": "activatePlugin",
+            "pluginPath": "gallop/gallop.php"
+        },
+        {
+            "step": "setSiteOptions",
+            "options": {
+                "comment_moderation": "0",
+                "comment_previously_approved": "0",
+                "require_name_email": "1",
+                "thread_comments": "1",
+                "thread_comments_depth": "5",
+                "comments_notify": "1",
+                "moderation_notify": "1",
+                "show_avatars": "1",
+                "comment_registration": "0",
+                "close_comments_for_old_posts": "0",
+                "close_comments_days_old": "14",
+                "comment_max_links": "2",
+                "permalink_structure": "/%year%/%monthnum%/%postname%/"
+            }
+        }
+    ]
+}

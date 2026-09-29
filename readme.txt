@@ -4,7 +4,7 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,8 @@ Most headless setups make you stitch together a waterfall of core WordPress REST
 #### Why choose Gallop?
 
 * **One round trip instead of five.** Everything a page needs — `post`, `seo`, and `site` — in a single response.
-* **No JWT, no API keys, no separate auth service.** Cookie-based login is built in and wired to WordPress's own `wp_signon()`.
+* **No JWT, no separate auth service.** Cookie-based login is built in and wired to WordPress's own `wp_signon()`, and reading content needs no key at all.
+* **Comments that stay in WordPress.** Visitors comment on your front end; WordPress stores, moderates, and notifies exactly as it does for its own comment form.
 * **SEO done for you.** With Yoast active, the `seo` block ships search-ready out of the box.
 * **No-code custom post types.** Register REST-enabled CPTs from the admin — no `register_post_type()` boilerplate.
 * **Instant publishing.** Publish in WordPress and Gallop revalidates the affected Next.js routes automatically — no full redeploy.
@@ -77,6 +78,8 @@ All endpoints live under the `gallop/v1` namespace.
 * `POST /gallop/v1/auth/login` — Cookie-based login for a headless front end. Accepts `username`, `password`, and optional `remember`. Rate-limited per username/IP.
 * `POST /gallop/v1/auth/logout` — Log out the current user.
 * `GET  /gallop/v1/auth/session` — Return the current user payload and a `wp_rest` nonce, or `{ "user": null, "nonce": null }` when not logged in.
+* `GET  /gallop/v1/comments` — The approved comments on a `post`, oldest first, as a flat list with `parent` ids. Public.
+* `POST /gallop/v1/comments` — Submit a visitor's comment. Requires the API key.
 
 = Login support =
 
@@ -87,6 +90,30 @@ Gallop ships with everything a Next.js site needs to authenticate users against 
 * **Logout** via `POST /gallop/v1/auth/logout`.
 * **Brute-force protection** out of the box: five failed attempts per username + client IP within fifteen minutes return HTTP 429 until the window expires, with optional reverse-proxy IP awareness for sites behind Cloudflare or a load balancer.
 
+= Comments =
+
+Show WordPress comments on a headless front end, and let visitors leave them, without giving up anything WordPress does with a comment.
+
+* `GET /gallop/v1/comments?post=<id>` returns the post's approved `comments`, oldest first, each with `id`, `parent`, `authorName`, `authorUrl`, `isPostAuthor`, `avatar`, `dateGmt`, and rendered `content`. Build the thread from `parent`. It also returns `open`, `count`, `requireNameEmail`, `threadDepth`, and `truncated`. A commenter's email address, IP address, and browser are never returned.
+* `POST /gallop/v1/comments` takes `post`, `parent`, `authorName`, `authorEmail`, `authorUrl`, `content`, and the visitor's `ip`, `userAgent`, and `referer`. It answers `201` with the `comment`, its `status` (`approved`, `hold`, `spam`, or `trash`), and the post's new `count`.
+
+A submitted comment is handed to `wp_handle_comment_submission()`, the function WordPress's own comment form uses. Your Discussion settings, moderation, the duplicate and flood checks, anti-spam plugins such as Akismet, and notification emails all behave as they do for a comment left on a WordPress site. Core's own REST route for comments sends no notification emails.
+
+Send the request from your front end's **server**, never from the browser: it carries the API key.
+
+= API key =
+
+Reading from Gallop needs no key. Writing does: a request that changes something in WordPress on a visitor's behalf has to prove it comes from your front end's own server.
+
+* **Generate it** under Gallop → Settings → Front-end connection. It is shown once. Gallop stores only a hash of it.
+* **Send it** in the `X-Gallop-WP-Key` header, over HTTPS.
+* **Keep it on your server**, in a secret environment variable such as `GALLOP_WP_API_KEY`. Never give it a `NEXT_PUBLIC_` prefix, and never put it in code.
+* **Or set it in `wp-config.php`** with `define( 'GALLOP_WP_API_KEY', 'gallopwp_…' );`. A key set there takes priority over a generated one.
+* **Permissions are off by default.** A key can do only what you tick: "Submit comments" is the first. A permission added by a later version is never switched on for you.
+* **Regenerating** replaces the key at once.
+
+Gallop removes the key from the request as soon as it has been checked, so other plugins that read or forward request headers never see it.
+
 = SEO integration =
 
 When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is active, the `seo` block in the post and category responses is populated from Yoast's indexable data (canonical, meta description, OpenGraph fields, robots flags, reading time, etc.). Without Yoast, `seo` is returned as an empty object so clients can branch safely.
@@ -96,17 +123,35 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 * `gallop_auth_login_success` — fires after a successful REST login. Args: `WP_User $user`, `WP_REST_Request $request`.
 * `gallop_auth_login_failed` — fires after a failed REST login. Args: `string $username`, `WP_REST_Request $request`.
 * `gallop_auth_logout` — fires after a REST logout. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_comment_submitted` — fires after a submitted comment has been saved, whatever its status. Args: `WP_Comment $comment`, `WP_REST_Request $request`.
+* `gallop_comment_rejected` — fires when WordPress refused a submitted comment. Args: `WP_Error $error`, `WP_REST_Request $request`.
+* `gallop_api_key_generated` — fires after a key has been generated. The key is not passed. Args: `string $keyId`.
+* `gallop_api_key_verified` — fires when a request presented a valid key for a permission it holds. Args: `string $keyId`, `string $capability`, `WP_REST_Request $request`.
+* `gallop_api_key_failed` — fires when a request presented a key that is not this site's. Args: `WP_REST_Request $request`.
 
 = Filter hooks =
 
 * `gallop_trust_forwarded_ip` — filter the boolean controlling whether reverse-proxy IP headers (`CF-Connecting-IP`, `X-Forwarded-For`) are trusted when rate-limiting REST auth. Defaults to the "Trust proxy IP headers" setting. Only enable behind a trusted proxy that overwrites these headers, otherwise the per-IP rate limit can be bypassed by spoofing them.
+* `gallop_comment_data` — filter one comment as it is returned. `gallop_comments_data` — filter the whole response to a request for a post's comments.
+* `gallop_comments_max` — the most comments one request returns. Default 500.
+* `gallop_comment_avatar_sizes` — the avatar sizes returned with each comment, in pixels. Default 48 and 96.
+* `gallop_comments_cache_control` — the `Cache-Control` header sent with a post's comments.
+* `gallop_api_key_capabilities` — the permissions a key can be granted. Adding one makes it available to tick; it grants it to nothing.
+* `gallop_api_key_max_failed_attempts` — how many wrong keys one address may present in fifteen minutes. Default 10.
+* `gallop_api_key_transport_secure` — whether a request arrived over a connection safe to carry the key.
 
 = Data stored =
 
 * `gallop_post_types` (option) — your custom post type definitions.
 * `gallop_nextjs_production_url` (option) — the redirect target, if configured.
 * `gallop_trust_forwarded_ip` (option) — whether to trust reverse-proxy IP headers when rate-limiting auth (default off).
+* `gallop_api_key_hash` (option) — a hash of your API key, with the date it was generated and its last four characters. Never the key itself.
+* `gallop_api_key_permissions` (option) — what the key is allowed to do.
 * `gallop_auth_*` (transients) — short-lived login rate-limit counters.
+* `gallop_key_fail_*` (transients) — short-lived counters of wrong API keys, by address.
+* `gallop_key_reveal_*` (transient) — a newly generated key, held for up to two minutes so it can be shown once after the page reloads, then deleted.
+
+Comments submitted through Gallop are ordinary WordPress comments, stored where WordPress stores every comment.
 
 == Installation ==
 
@@ -114,6 +159,7 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 2. Activate **Gallop** from the Plugins screen.
 3. Point your Next.js front end at `https://your-wp-site.example/wp-json/gallop/v1` and start fetching `post`, `category`, and `auth` endpoints.
 4. (Optional) Open **Gallop** in the admin menu to register custom post types and set your Next.js production URL.
+5. (Optional) To accept comments from your front end, generate an API key under **Front-end connection**, tick **Submit comments**, and give the key to your front end's server.
 
 Requires PHP 8.1 or higher. The plugin will refuse to boot and show an admin notice on older PHP versions.
 
@@ -121,7 +167,7 @@ Requires PHP 8.1 or higher. The plugin will refuse to boot and show an admin not
 
 1. The Gallop REST API in action — a request to the `gallop/v1` namespace returning post, SEO, and site data.
 2. Login UI: the headless auth flow signing in against `/gallop/v1/auth/login` with standard WordPress cookies.
-3. Settings tab: point Gallop at your Next.js production URL and configure proxy IP trust for auth rate limiting.
+3. Settings tab: point Gallop at your Next.js production URL, configure proxy IP trust for auth rate limiting, and generate the API key your front end writes with.
 4. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
 
 == Frequently Asked Questions ==
@@ -146,6 +192,45 @@ Yes. Five failed attempts per username + client IP within fifteen minutes return
 
 By default Gallop uses `REMOTE_ADDR` for the per-IP portion of the login rate limit. If your site sits behind a trusted reverse proxy (Cloudflare, a load balancer, etc.) that overwrites the client-IP headers, enable **Trust proxy IP headers** on the Gallop settings screen so `CF-Connecting-IP` / `X-Forwarded-For` are used instead. Leave it off on direct-served sites — turning it on without a trusted proxy lets attackers spoof those headers to bypass the rate limit. The setting can also be overridden in code via the `gallop_trust_forwarded_ip` filter.
 
+= Which posts can comments be read from? =
+
+Published posts of a public type that are not password protected. Anything else, a missing post included, answers the same `404 gallop_comments_post_not_found`, so the route cannot be used to find out that a draft exists. The newest 500 comments are returned by default; `truncated` is `true` when there are more, and `gallop_comments_max` raises the ceiling.
+
+= What can submitting a comment be refused with? =
+
+Every refusal has a code, and WordPress's own reason in `data.reason`.
+
+* The key: `gallop_key_missing` (401), `gallop_key_invalid` (401), `gallop_key_forbidden` (403, the key lacks the permission), `gallop_https_required` (403), `gallop_key_rate_limited` (429).
+* The site does not accept it: `gallop_comment_closed` (403), `gallop_comment_login_required` (403), `gallop_comments_post_not_found` (404).
+* The request: `gallop_comment_name_email_required`, `gallop_comment_invalid_email`, `gallop_comment_empty`, `gallop_comment_too_long`, `gallop_comment_name_too_long`, `gallop_comment_email_too_long`, `gallop_comment_url_too_long`, `gallop_comment_invalid_ip` (all 400).
+* The reply: `gallop_comment_invalid_parent`, `gallop_comment_thread_too_deep`, `gallop_comment_threading_disabled` (all 400). A parent must be an approved comment on the same post.
+* WordPress's checks: `gallop_comment_duplicate` (409), `gallop_comment_flood` (429).
+* Anything else: `gallop_comment_rejected` (400, another plugin refused it), `gallop_comment_save_failed` (500).
+
+= How does WordPress see the visitor rather than my server? =
+
+Your server passes on the visitor's IP address, browser, and the page they commented from. While the comment is being saved, Gallop presents those details to WordPress and to other plugins in place of the server's own, then puts the originals back. That is what lets WordPress record, throttle, and spam-check each comment against the person who wrote it. The details are only accepted from a request whose key has been verified.
+
+= The key is refused with gallop_https_required. Why? =
+
+The key is only accepted over HTTPS, or in a `local` environment. If your site is served over HTTPS and you still see this, it is probably behind a proxy that ends TLS without telling WordPress. Fixing `is_ssl()` in `wp-config.php` is the right answer, since WordPress's own Application Passwords need it too. The `gallop_api_key_transport_secure` filter is there if you cannot.
+
+= What happens after too many wrong keys? =
+
+After ten wrong keys from one address in fifteen minutes, further wrong keys from it are answered `429 gallop_key_rate_limited`. A correct key is never refused for that reason, so nobody can lock your front end out by sending wrong ones. If the key in `wp-config.php` is not valid, every request that needs a key is refused and an admin notice says so.
+
+= Why do comments need an API key when reading does not? =
+
+Anyone may read a published post's comments, as on any WordPress site. Submitting one is different: it arrives from your front end's server on a visitor's behalf, carrying the visitor's IP address for WordPress to record and check. The key is how Gallop knows the request, and that address, really came from your server. Without it, anyone could post straight to WordPress, skip whatever spam checks your front end runs, and claim any address they liked.
+
+= I lost my API key. Can I see it again? =
+
+No. Gallop stores a hash of the key, not the key. Regenerate it under Gallop → Settings → Front-end connection and install the new one. The old key stops working as soon as you do.
+
+= Are comments held for moderation? =
+
+That is decided by your Discussion settings, exactly as for a comment left on a WordPress site. The response to a submitted comment reports its `status`, so your front end can tell a visitor that their comment is waiting for approval.
+
 = Do I need Yoast SEO? =
 
 No. If Yoast is not active the `seo` field in responses is an empty object. With Yoast active, Gallop reads from its indexables to populate canonical, OpenGraph, and robots data.
@@ -156,7 +241,7 @@ No. Posts, pages, media, and built-in taxonomies are left alone. Only post types
 
 = What happens if I deactivate or delete the plugin? =
 
-Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes the `gallop_post_types`, `gallop_nextjs_production_url`, and `gallop_trust_forwarded_ip` options plus any leftover login rate-limit transients. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall.
+Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes the `gallop_post_types`, `gallop_nextjs_production_url`, `gallop_trust_forwarded_ip`, `gallop_api_key_hash`, and `gallop_api_key_permissions` options plus any leftover rate-limit transients. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall. So are comments.
 
 == Privacy ==
 
@@ -164,9 +249,20 @@ Gallop does not send any data to external services. All data stays on your WordP
 
 The `/gallop/v1/auth/login` endpoint authenticates users with WordPress's built-in `wp_signon()` and sets the standard WordPress auth cookies. To mitigate brute-force attacks, Gallop temporarily stores failed-login counters in WordPress transients keyed by username and by the requesting IP address. These counters expire automatically (typically within 15 minutes) and are removed on plugin uninstall.
 
+When a request presents a wrong API key, Gallop counts it in a transient keyed by a hash of the requesting IP address. That counter also expires within 15 minutes and is removed on uninstall.
+
+A comment submitted through `/gallop/v1/comments` is stored by WordPress with the commenter's name, email address, IP address, and browser, as WordPress stores every comment. Those details are supplied by your front end, and the IP address and browser are presented to other active plugins while the comment is saved, as they would be for a comment left on the site itself: an anti-spam plugin may send them to its own service, under its own privacy terms. Comments are returned by `/gallop/v1/comments` without the email address, IP address, or browser. If avatars are switched on, each comment includes an avatar address from your avatar service (Gravatar by default), which contains a hash of the commenter's email address, as WordPress's own themes and REST API expose.
+
 No personal data is shared with third parties. No tracking, analytics, or telemetry is performed.
 
 == Changelog ==
+
+= 1.1.0 =
+* Added `/gallop/v1/comments`. `GET` returns a post's approved comments as a flat list with `parent` ids, ready to thread. `POST` submits a visitor's comment through WordPress's own comment form handling, so Discussion settings, moderation, the duplicate and flood checks, anti-spam plugins, and notification emails all behave as they do for a comment left on a WordPress site.
+* Added an API key for front ends that write to WordPress. Generate it under Gallop → Settings → Front-end connection, or define `GALLOP_WP_API_KEY` in `wp-config.php`. Only a hash is stored. It is sent in the `X-Gallop-WP-Key` header, over HTTPS only.
+* What a key may do is switched on one permission at a time, and every permission starts off. "Submit comments" is the first.
+* New filters: `gallop_comment_data`, `gallop_comments_data`, `gallop_comments_max`, `gallop_comment_avatar_sizes`, `gallop_comments_cache_control`, `gallop_api_key_capabilities`, `gallop_api_key_max_failed_attempts`, `gallop_api_key_transport_secure`. New actions: `gallop_comment_submitted`, `gallop_comment_rejected`, `gallop_api_key_generated`, `gallop_api_key_verified`, `gallop_api_key_failed`.
+* Existing endpoints and their responses are unchanged.
 
 = 1.0.0 =
 * First stable release. No functional changes from 0.2.0: the REST API and its response shapes are now considered stable.
@@ -192,6 +288,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Optional Next.js production URL redirect for public front-end requests.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds comment endpoints and an API key for front ends that write to WordPress. Nothing changes for existing requests. No key exists until you generate one, and its permissions start switched off.
 
 = 1.0.0 =
 First stable release. No functional changes from 0.2.0.

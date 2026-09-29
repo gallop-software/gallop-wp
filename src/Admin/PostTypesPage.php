@@ -63,6 +63,17 @@ final class PostTypesPage
             [],
             $version
         );
+
+        $rel = 'assets/js/admin.js';
+        $abs = dirname(__DIR__, 2) . '/' . $rel;
+        $version = is_file($abs) ? (string) filemtime($abs) : '0';
+        wp_enqueue_script(
+            'gallop-admin',
+            plugins_url($rel, dirname(__DIR__, 2) . '/gallop.php'),
+            [],
+            $version,
+            ['in_footer' => true]
+        );
     }
 
     public function handleSave(): void

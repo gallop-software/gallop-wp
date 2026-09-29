@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use Gallop\Admin\ConnectionSection;
 use Gallop\Admin\Menu;
 use Gallop\Admin\PostTypesPage;
 use Gallop\Admin\Settings;
@@ -17,6 +18,7 @@ use Gallop\PostTypes\Storage as PostTypesStorage;
 use Gallop\Rest\AuthEndpoint;
 use Gallop\Rest\PostEndpoint;
 use Gallop\Rest\CategoryEndpoint;
+use Gallop\Rest\CommentsEndpoint;
 use Gallop\Rest\PostsEndpoint;
 
 final class Plugin
@@ -33,11 +35,15 @@ final class Plugin
         add_action('rest_api_init', [new PostsEndpoint($postEndpoint), 'register']);
         add_action('rest_api_init', [new CategoryEndpoint(), 'register']);
         add_action('rest_api_init', [new AuthEndpoint(), 'register']);
+        add_action('rest_api_init', [new CommentsEndpoint(), 'register']);
 
         (new Redirect())->register();
 
         if (is_admin()) {
-            $settings = new Settings();
+            $connection = new ConnectionSection();
+            $connection->registerHandlers();
+
+            $settings = new Settings($connection);
             add_action('admin_init', [$settings, 'register']);
 
             $postTypesPage = new PostTypesPage($postTypesStorage, $settings);

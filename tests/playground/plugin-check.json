@@ -1,0 +1,19 @@
+{
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "steps": [
+        {
+            "step": "defineWpConfigConsts",
+            "method": "rewrite-wp-config",
+            "consts": { "WP_ENVIRONMENT_TYPE": "local" }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": { "resource": "wordpress.org/plugins", "slug": "plugin-check" },
+            "options": { "activate": true }
+        },
+        {
+            "step": "activatePlugin",
+            "pluginPath": "gallop/gallop.php"
+        }
+    ]
+}

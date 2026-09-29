@@ -2,147 +2,377 @@
 # This file is distributed under the GPLv2 or later license.
 msgid ""
 msgstr ""
-"Project-Id-Version: Gallop 1.0.0\n"
+"Project-Id-Version: Gallop 1.1.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/gallop\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-05-18T00:00:00+00:00\n"
+"POT-Creation-Date: 2026-09-29T00:00:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Domain: gallop\n"
 
-#: src/Admin/Menu.php:39
-#: src/Admin/PostTypesPage.php:130
-msgid "Post Types"
+#: src/Admin/ConnectionSection.php:42
+msgid "API key generated. Copy it now: it will not be shown again."
 msgstr ""
 
-#: src/Admin/Settings.php:36
-#: src/Admin/PostTypesPage.php:129
+#: src/Admin/ConnectionSection.php:43
+msgid "The API key could not be generated. Nothing was changed."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:44
+msgid "The API key is set in wp-config.php, so a generated key would not be used. Remove the constant first."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:60
+msgid "Front-end connection"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:67
+msgid "API key"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:75
+#: src/Admin/ConnectionSection.php:177
+msgid "Permissions"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:91
+#: src/Admin/PostTypesPage.php:82
+#: src/Admin/PostTypesPage.php:111
+msgid "Forbidden"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:153
+msgid "The API key proves that a request comes from your front-end site's own server. Gallop asks for it before anything is written to WordPress, such as a visitor's comment. Reading content does not need a key."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:191
+msgid "The key can do only what is ticked here. WordPress's Discussion settings still decide whether a submitted comment is published or held for moderation."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:220
+msgid "<strong>Gallop:</strong> <code>GALLOP_WP_API_KEY</code> is defined in wp-config.php but is not a valid key, so requests that need a key are refused. It must start with <code>gallopwp_</code> followed by at least 32 random letters and digits."
+msgstr ""
+
+#. translators: 1: date the key was generated, 2: last four characters of the key
+#: src/Admin/ConnectionSection.php:235
+msgid "Generated on %1$s, ending in %2$s."
+msgstr ""
+
+#. translators: %s: last four characters of the key
+#: src/Admin/ConnectionSection.php:241
+msgid "Set in wp-config.php, ending in %s. A generated key is ignored while the constant is defined."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:244
+msgid "<code>GALLOP_WP_API_KEY</code> is defined in wp-config.php but is not a valid key, so every request that needs a key is refused."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:245
+msgid "No key yet. Your front end cannot submit anything until you generate one."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:251
+msgid "Regenerate key"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:251
+msgid "Generate key"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:257
+msgid "Regenerate the API key? The current key stops working immediately, and your front end cannot submit anything until the new key is installed."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:278
+msgid "Your new API key"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:281
+msgid "Copied"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:281
+msgid "Copy"
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:283
+msgid "This is the only time the key is shown. Copy it before you leave or reload this page."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:292
+msgid "<strong>Shown once.</strong> The key appears only right after you generate it. Gallop stores a hash, not the key, so it cannot be shown again. If you lose it, regenerate."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:293
+msgid "<strong>Where it goes.</strong> Add it to your site's <code>.env.production</code> as <code>GALLOP_WP_API_KEY=…</code>, then run <code>npm run cf:secrets</code> to send it to Cloudflare. Other hosts have their own secret store; use that."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:294
+msgid "<strong>Keep it on the server.</strong> Never name the variable with a <code>NEXT_PUBLIC_</code> prefix and never put the key in your code. Either one publishes it."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:295
+msgid "<strong>Regenerating.</strong> The old key stops working immediately. Your front end cannot submit anything until the new key is installed."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:296
+msgid "<strong>Using wp-config.php instead.</strong> Add <code>define( 'GALLOP_WP_API_KEY', 'gallopwp_…' );</code> above the \"stop editing\" line. A key set there takes priority over a generated one. It must start with <code>gallopwp_</code> followed by at least 32 random letters and digits."
+msgstr ""
+
+#: src/Admin/ConnectionSection.php:297
+msgid "<strong>Permissions.</strong> The key can do only what is ticked below. New permissions are always off until you turn them on."
+msgstr ""
+
+#: src/Admin/Menu.php:22
+#: src/Admin/Menu.php:23
+msgid "Gallop"
+msgstr ""
+
+#: src/Admin/Menu.php:33
+#: src/Admin/Menu.php:34
+#: src/Admin/PostTypesPage.php:149
+#: src/Admin/Settings.php:44
 msgid "Settings"
 msgstr ""
 
-#: src/Admin/Settings.php:38
-msgid "When set, public front-end requests are 301-redirected to this URL with the same path. Leave blank to keep the default WordPress front end."
+#: src/Admin/Menu.php:42
+#: src/Admin/Menu.php:43
+#: src/Admin/PostTypesPage.php:150
+msgid "Post Types"
 msgstr ""
 
-#: src/Admin/Settings.php:45
-msgid "Next.js Production URL"
-msgstr ""
-
-#: src/Admin/Settings.php:54
-msgid "Trust proxy IP headers"
-msgstr ""
-
-#: src/Admin/Settings.php:89
-msgid "Enable only if this site sits behind a trusted reverse proxy (Cloudflare, a load balancer, etc.) that overwrites these headers. Leaving it off is safer on direct-served sites; turning it on without a trusted proxy lets attackers bypass login rate limits by spoofing the header."
-msgstr ""
-
-#: src/Admin/Settings.php:98
-msgid "Save settings"
-msgstr ""
-
-#: src/Rest/AuthEndpoint.php:70
-msgid "Too many login attempts. Please try again later."
-msgstr ""
-
-#: src/Rest/AuthEndpoint.php:88
-msgid "Invalid username or password."
-msgstr ""
-
-#: src/Admin/PostTypesPage.php:23
+#: src/Admin/PostTypesPage.php:27
 msgid "Post type saved."
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:24
+#: src/Admin/PostTypesPage.php:28
 msgid "Post type deleted."
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:25
+#: src/Admin/PostTypesPage.php:29
 msgid "Name is required."
 msgstr ""
 
 #. translators: %s: post type slug
-#: src/Admin/PostTypesPage.php:27
+#: src/Admin/PostTypesPage.php:31
 msgid "A post type with slug <code>%s</code> already exists. Delete it below first, or choose a different name."
 msgstr ""
 
 #. translators: %s: post type slug
-#: src/Admin/PostTypesPage.php:29
-msgid "The slug <code>%s</code> is already used by WordPress or another plugin. Choose a different name."
+#: src/Admin/PostTypesPage.php:33
+msgid "The slug <code>%s</code> is reserved by WordPress or already used by another plugin. Choose a different name."
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:170
+#. translators: %s: post type slug
+#: src/Admin/PostTypesPage.php:35
+msgid "The slug <code>%s</code> is too long. Post type slugs must be 20 characters or fewer."
+msgstr ""
+
+#: src/Admin/PostTypesPage.php:190
 msgid "Registered post types"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:172
+#: src/Admin/PostTypesPage.php:192
 msgid "No post types yet. Add one below."
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:179
+#: src/Admin/PostTypesPage.php:199
 msgid "Slug"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:180
+#: src/Admin/PostTypesPage.php:200
 msgid "Singular"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:181
+#: src/Admin/PostTypesPage.php:201
 msgid "Plural"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:182
+#: src/Admin/PostTypesPage.php:202
 msgid "REST endpoint"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:183
+#: src/Admin/PostTypesPage.php:203
 msgid "Actions"
 msgstr ""
 
 #. translators: %s: plural label of the post type being deleted
-#: src/Admin/PostTypesPage.php:189
+#: src/Admin/PostTypesPage.php:209
 msgid "Delete the \"%s\" post type? Existing posts remain in the database but become inaccessible until you re-add the post type."
 msgstr ""
 
 #. translators: %s: post type plural label
-#: src/Admin/PostTypesPage.php:203
+#: src/Admin/PostTypesPage.php:223
 msgid "Delete %s"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:203
+#: src/Admin/PostTypesPage.php:223
 msgid "Delete"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:214
+#: src/Admin/PostTypesPage.php:234
 msgid "Add a post type"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:220
+#: src/Admin/PostTypesPage.php:240
 msgid "Plural name"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:221
+#: src/Admin/PostTypesPage.php:241
 msgid "Books"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:222
+#: src/Admin/PostTypesPage.php:242
 msgid "Used for the admin menu and the REST endpoint slug (lowercased and hyphenated)."
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:225
+#: src/Admin/PostTypesPage.php:245
 msgid "Singular name"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:226
+#: src/Admin/PostTypesPage.php:246
 msgid "Book"
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:227
+#: src/Admin/PostTypesPage.php:247
 msgid "Used in admin labels for a single item (e.g. \"Add New Book\")."
 msgstr ""
 
-#: src/Admin/PostTypesPage.php:230
+#: src/Admin/PostTypesPage.php:250
 msgid "Add post type"
+msgstr ""
+
+#: src/Admin/Settings.php:46
+msgid "When set, public front-end requests are 301-redirected to this URL with the same path. Leave blank to keep the default WordPress front end."
+msgstr ""
+
+#: src/Admin/Settings.php:53
+msgid "Next.js Production URL"
+msgstr ""
+
+#: src/Admin/Settings.php:62
+msgid "Trust proxy IP headers"
+msgstr ""
+
+#: src/Admin/Settings.php:99
+msgid "Enable only if this site sits behind a trusted reverse proxy (Cloudflare, a load balancer, etc.) that overwrites these headers. Leaving it off is safer on direct-served sites; turning it on without a trusted proxy lets attackers bypass login rate limits by spoofing the header."
+msgstr ""
+
+#: src/Admin/Settings.php:108
+msgid "Save settings"
+msgstr ""
+
+#: src/Auth/ApiKey.php:75
+msgid "Submit comments"
+msgstr ""
+
+#: src/Auth/ApiKey.php:129
+msgid "An API key is required."
+msgstr ""
+
+#: src/Auth/ApiKey.php:141
+msgid "The API key is only accepted over HTTPS."
+msgstr ""
+
+#: src/Auth/ApiKey.php:154
+msgid "This API key is not allowed to do that."
+msgstr ""
+
+#: src/Auth/ApiKey.php:437
+msgid "Too many invalid API keys. Please try again later."
+msgstr ""
+
+#: src/Auth/ApiKey.php:446
+msgid "Invalid API key."
+msgstr ""
+
+#: src/Rest/AuthEndpoint.php:74
+msgid "Too many login attempts. Please try again later."
+msgstr ""
+
+#: src/Rest/AuthEndpoint.php:106
+msgid "Invalid username or password."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:205
+msgid "A valid visitor IP address is required."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:229
+#: src/Rest/CommentsEndpoint.php:633
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:314
+#: src/Rest/CommentsEndpoint.php:607
+msgid "No post with comments to read was found."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:363
+msgid "Replies are switched off on this site."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:377
+#: src/Rest/CommentsEndpoint.php:663
+msgid "The comment being replied to is not available."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:385
+msgid "This thread cannot be replied to any further."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:618
+msgid "Comments are closed."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:623
+msgid "This site only accepts comments from logged-in users."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:628
+msgid "A name and an email address are required."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:638
+msgid "Please write a comment."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:643
+msgid "The name is too long."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:648
+msgid "The email address is too long."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:653
+msgid "The website address is too long."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:658
+msgid "The comment is too long."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:668
+msgid "This comment has already been posted."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:673
+msgid "Comments are being posted too quickly. Please wait a moment."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:678
+msgid "The comment could not be saved."
+msgstr ""
+
+#: src/Rest/CommentsEndpoint.php:687
+msgid "The comment was not accepted."
+msgstr ""
+
+#. translators: 1: Plugin name (wrapped in <strong>), 2: Current PHP version.
+#: gallop.php:27
+msgid "%1$s requires PHP 8.1 or higher. Current version: %2$s"
 msgstr ""

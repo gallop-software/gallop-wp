@@ -17,6 +17,10 @@ final class Settings
     private const SECTION = 'gallop_settings_section';
     public const PAGE = 'gallop';
 
+    public function __construct(private readonly ConnectionSection $connection)
+    {
+    }
+
     public function register(): void
     {
         register_setting(self::GROUP, self::OPTION_NEXTJS_URL, [
@@ -61,6 +65,8 @@ final class Settings
             self::SECTION,
             ['label_for' => 'gallop-trust-forwarded-ip'],
         );
+
+        $this->connection->register(self::GROUP, self::PAGE);
     }
 
     public static function sanitizeBool(mixed $value): bool
@@ -101,5 +107,7 @@ final class Settings
         do_settings_sections(self::PAGE);
         submit_button(__('Save settings', 'gallop'));
         echo '</form>';
+
+        $this->connection->renderActionForm();
     }
 }
