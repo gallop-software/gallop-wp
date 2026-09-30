@@ -357,11 +357,17 @@ final class MembersEndpoint
          */
         do_action('gallop_member_registered', $user, $request);
 
+        // The reader has no password yet. A reset key lets the front end offer
+        // them one now, on the page they are on, without another email. It is
+        // WordPress's own key: single use, and gone in a day if not used.
+        $passwordKey = get_password_reset_key($user);
+
         return new WP_REST_Response([
             'loggedIn' => true,
             'existing' => false,
             'subscribed' => $subscribe,
             'member' => Member::payload($user, true),
+            'passwordKey' => is_string($passwordKey) ? $passwordKey : null,
         ], 201);
     }
 

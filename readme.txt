@@ -85,7 +85,7 @@ All endpoints live under the `gallop/v1` namespace.
 Readers get accounts, and WordPress is the only place they live. Every route takes the API key with the **Manage members** permission and is called by your front end's **server**, which keeps its own session for the member; WordPress is asked only when someone logs in or changes something.
 
 * **Log in** with an email address or username and a password, checked by `wp_authenticate()` as the visitor, so login-protection plugins see the visitor's address. No WordPress cookies are set.
-* **Sign up**: nothing is created until the reader opens the confirmation email; then they become a Subscriber, verified, and logged in. An address that already has an account is only marked subscribed. An email is never a way past a password.
+* **Sign up**: nothing is created until the reader opens the confirmation email; then they become a Subscriber, verified, and logged in, with a one-time key so the front end can offer them a password at once. An address that already has an account is only marked subscribed. An email is never a way past a password.
 * **Reset a password** with WordPress's own reset keys, emailed as a link to your front end.
 * **Profiles**: name, email, password, and two email choices. Changing the email or password needs the current one and ends every session the front end holds, through a `sessionVersion` handed back with each request.
 * **Comments as themselves**, recorded as theirs, and accepted where only registered users may comment.
