@@ -149,7 +149,7 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 * `gallop_trust_forwarded_ip` (option) — whether to trust reverse-proxy IP headers when rate-limiting auth (default off).
 * `gallop_api_key_hash` (option) — a hash of your API key, with the date it was generated and its last four characters. Never the key itself.
 * `gallop_api_key_permissions` (option) — what the key is allowed to do.
-* `gallop_verified`, `gallop_subscribed`, `gallop_reply_emails`, `gallop_session_version` (user meta) — a member's confirmed address, email choices, and session version. `_gallop_reply_notified` (comment meta) — a reply already emailed about.
+* `gallop_verified`, `gallop_subscribed`, `gallop_reply_emails`, `gallop_session_version` (user meta) — whether a member's address is waiting for confirmation, their email choices, and their session version. `_gallop_reply_notified` (comment meta) — a reply already emailed about.
 * `gallop_auth_*` (transients) — short-lived login rate-limit counters.
 * `gallop_pending_*` (transients) — sign-ups awaiting confirmation, up to 48 hours: address, names, and a hash of the link's key.
 * `gallop_confirm_sent_*` (transients) — when each address was last emailed, for a day.

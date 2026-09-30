@@ -117,9 +117,15 @@ final class Member
         return user_can($user, 'manage_options');
     }
 
+    /**
+     * Whether the member's address is known to be theirs. An account made before
+     * this plugin recorded anything counts as verified: it was made some other
+     * way, and its owner logs in with a password. Only an address waiting for
+     * its confirmation, after a change, is not.
+     */
     public static function isVerified(WP_User $user): bool
     {
-        return get_user_meta($user->ID, self::META_VERIFIED, true) === '1';
+        return get_user_meta($user->ID, self::META_VERIFIED, true) !== '0';
     }
 
     /**

@@ -467,7 +467,7 @@ async function main() {
     console.log('  existing subscribers')
     const legacy = (await post(`${TEST}/user`, { login: 'oldtimer', email: 'oldtimer@example.com', password: 'oldtimer-pass', role: 'subscriber' })).json
     const legacyLogin = await m('POST', '/login', { login: 'oldtimer', password: 'oldtimer-pass', ...visitor })
-    check('a subscriber made before the plugin logs in, unverified, subscribed by role', legacyLogin.status === 200 && legacyLogin.json.member.verified === false && legacyLogin.json.member.subscribed === true && legacyLogin.json.member.replyEmails === false && legacyLogin.json.member.sessionVersion === 1, legacyLogin.json)
+    check('a subscriber made before the plugin logs in, taken as verified, subscribed by role', legacyLogin.status === 200 && legacyLogin.json.member.verified === true && legacyLogin.json.member.subscribed === true && legacyLogin.json.member.replyEmails === false && legacyLogin.json.member.sessionVersion === 1, legacyLogin.json)
     const editor = (await post(`${TEST}/user`, { login: 'an-editor', email: 'editor@example.com', password: 'editor-pass', role: 'editor' })).json
     check('an account with another role is not', (await m('GET', `/${editor.id}?sessionVersion=1`)).json.member.subscribed === false)
     await m('PATCH', `/${legacy.id}`, { sessionVersion: 1, subscribed: false })
