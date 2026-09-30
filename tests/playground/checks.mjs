@@ -463,12 +463,11 @@ async function main() {
     console.log('  existing subscribers')
     const legacy = (await post(`${TEST}/user`, { login: 'oldtimer', email: 'oldtimer@example.com', password: 'oldtimer-pass', role: 'subscriber' })).json
     const legacyLogin = await m('POST', '/login', { login: 'oldtimer', password: 'oldtimer-pass', ...visitor })
-    check('a subscriber made before the plugin logs in, unverified, subscribed by the site\'s setting', legacyLogin.status === 200 && legacyLogin.json.member.verified === false && legacyLogin.json.member.subscribed === true && legacyLogin.json.member.replyEmails === false && legacyLogin.json.member.sessionVersion === 1, legacyLogin.json)
-    await option('gallop_members_legacy_subscribed', '0')
-    check('with the setting off they are not', (await m('GET', `/${legacy.id}?sessionVersion=1`)).json.member.subscribed === false)
-    await option('gallop_members_legacy_subscribed', '1')
+    check('a subscriber made before the plugin logs in, unverified, subscribed by role', legacyLogin.status === 200 && legacyLogin.json.member.verified === false && legacyLogin.json.member.subscribed === true && legacyLogin.json.member.replyEmails === false && legacyLogin.json.member.sessionVersion === 1, legacyLogin.json)
+    const editor = (await post(`${TEST}/user`, { login: 'an-editor', email: 'editor@example.com', password: 'editor-pass', role: 'editor' })).json
+    check('an account with another role is not', (await m('GET', `/${editor.id}?sessionVersion=1`)).json.member.subscribed === false)
     await m('PATCH', `/${legacy.id}`, { sessionVersion: 1, subscribed: false })
-    check('their own choice wins over the setting', (await m('GET', `/${legacy.id}?sessionVersion=1`)).json.member.subscribed === false)
+    check('their own choice wins over the role', (await m('GET', `/${legacy.id}?sessionVersion=1`)).json.member.subscribed === false)
 
     console.log('  comments as a member')
     const asMember = await post(COMMENTS, { post: posts.open, ...comment({ user: member.id, sessionVersion: session, authorName: 'Ignored', authorEmail: 'ignored@example.com', authorUrl: 'https://ignored.example' }) }, keyed(key))
@@ -601,12 +600,7 @@ async function main() {
     check('every option and transient is gone', after.length === 0, after)
     check('comments are left alone', (await get(`${COMMENTS}?post=${posts.open}`)).json.count === kept)
     const memberAfter = (await get(`${TEST}/user-by-email?email=suzanne.new@example.com`)).json
-    check('members are left alone, with what was recorded about them', memberAfter?.id === memberBefore.id && memberAfter.meta.verified === '1' && memberAfter.meta.sessionVersion === memberBefore.meta.sessionVersion, memberAfter)
-
-    await option('gallop_uninstall_member_data', '1')
-    await post(`${TEST}/uninstall`)
-    const scrubbed = (await get(`${TEST}/user-by-email?email=suzanne.new@example.com`)).json
-    check('with "remove member data" ticked, the account stays and the record goes', scrubbed?.id === memberBefore.id && scrubbed.meta.verified === '' && scrubbed.meta.subscribed === '' && scrubbed.meta.sessionVersion === '', scrubbed)
+    check('the member\'s account stays and what was recorded about them goes', memberAfter?.id === memberBefore.id && memberAfter.meta.verified === '' && memberAfter.meta.subscribed === '' && memberAfter.meta.sessionVersion === '', memberAfter)
   }
 }
 

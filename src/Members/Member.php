@@ -26,12 +26,6 @@ final class Member
     public const META_REPLY_EMAILS = 'gallop_reply_emails';
     public const META_SESSION_VERSION = 'gallop_session_version';
 
-    /**
-     * Whether accounts with the Subscriber role that were made before this plugin
-     * counted subscriptions are taken to want new posts by email.
-     */
-    public const OPTION_LEGACY_SUBSCRIBED = 'gallop_members_legacy_subscribed';
-
     public const PASSWORD_MIN = 8;
     public const PASSWORD_MAX = 128;
     public const NAME_MAX = 100;
@@ -132,8 +126,8 @@ final class Member
      * Whether the member wants new posts by email.
      *
      * A user the plugin has never recorded a choice for is taken to want them if
-     * they hold the Subscriber role and the site's owner has left that setting on:
-     * that is what most such accounts were made for.
+     * they hold the Subscriber role: that is what such accounts were made for.
+     * Their own choice, once made, is what counts.
      */
     public static function isSubscribed(WP_User $user): bool
     {
@@ -142,8 +136,7 @@ final class Member
             return $stored === '1';
         }
 
-        return in_array('subscriber', (array) $user->roles, true)
-            && (bool) get_option(self::OPTION_LEGACY_SUBSCRIBED, true);
+        return in_array('subscriber', (array) $user->roles, true);
     }
 
     /**

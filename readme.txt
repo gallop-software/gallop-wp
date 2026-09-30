@@ -149,7 +149,6 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 * `gallop_trust_forwarded_ip` (option) — whether to trust reverse-proxy IP headers when rate-limiting auth (default off).
 * `gallop_api_key_hash` (option) — a hash of your API key, with the date it was generated and its last four characters. Never the key itself.
 * `gallop_api_key_permissions` (option) — what the key is allowed to do.
-* `gallop_members_legacy_subscribed`, `gallop_uninstall_member_data` (options) — the two Members settings.
 * `gallop_verified`, `gallop_subscribed`, `gallop_reply_emails`, `gallop_session_version` (user meta) — a member's confirmed address, email choices, and session version. `_gallop_reply_notified` (comment meta) — a reply already emailed about.
 * `gallop_auth_*` (transients) — short-lived login rate-limit counters.
 * `gallop_pending_*` (transients) — sign-ups awaiting confirmation, up to 48 hours: address, names, and a hash of the link's key.
@@ -255,7 +254,7 @@ No. Posts, pages, media, and built-in taxonomies are left alone. Only post types
 
 = What happens if I deactivate or delete the plugin? =
 
-Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes every `gallop_*` option and transient. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall. So are comments and member accounts. What Gallop recorded about members (user meta) is removed too only if you ticked "When the plugin is deleted" under Gallop → Settings → Members.
+Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes every `gallop_*` option and transient. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall. So are comments and member accounts; what Gallop recorded about members (a few user meta rows) is removed.
 
 == Privacy ==
 
@@ -277,7 +276,7 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Added members: `POST /gallop/v1/members/login`, `POST /gallop/v1/members` (sign up), `/members/confirm`, `/members/reset-request`, `/members/reset`, and `GET|PATCH /members/{id}`. A front end's server can let readers log in with `wp_authenticate()`, sign up with email confirmation, reset a password with WordPress's own keys, and edit a profile, with no WordPress cookies involved. All need the API key with the new "Manage members" permission, which starts off.
 * A member logged in on the front end can comment as themselves: `POST /gallop/v1/comments` takes `user` and `sessionVersion`, and `GET` reports `openToMembers`.
 * A member can ask to be emailed when someone replies to their comment.
-* Two settings under Gallop → Settings → Members: whether existing Subscriber accounts count as subscribed to new posts by email, and whether deleting the plugin removes what it recorded about members.
+* Accounts with the Subscriber role that have never chosen count as subscribed to new posts by email; a member's own choice always wins.
 * New filters: `gallop_member_data`, `gallop_member_email`. New actions: `gallop_member_login`, `gallop_member_login_failed`, `gallop_member_signup_requested`, `gallop_member_verified`, `gallop_member_registered`, `gallop_member_password_reset`, `gallop_member_updated`.
 * Existing endpoints and their responses are unchanged, except that `GET /gallop/v1/comments` gains one field.
 

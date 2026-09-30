@@ -126,32 +126,20 @@ msgstr ""
 msgid "<strong>Permissions.</strong> The key can do only what is ticked below. New permissions are always off until you turn them on."
 msgstr ""
 
-#: src/Admin/MembersSection.php:43
+#: src/Admin/MembersSection.php:23
 msgid "Members"
 msgstr ""
 
-#: src/Admin/MembersSection.php:50
-msgid "Existing subscribers"
-msgstr ""
-
-#: src/Admin/MembersSection.php:59
-msgid "When the plugin is deleted"
-msgstr ""
-
-#: src/Admin/MembersSection.php:71
+#: src/Admin/MembersSection.php:33
 msgid "With the \"Manage members\" permission ticked above, your front end can let readers log in with their WordPress account, sign up, reset a password, and edit their profile. Accounts are ordinary WordPress users with the Subscriber role. Nothing is created until the reader opens the confirmation email."
 msgstr ""
 
-#: src/Admin/MembersSection.php:72
+#: src/Admin/MembersSection.php:34
 msgid "The confirmation and reset emails are sent by WordPress and link to your front end, so the <strong>Next.js Production URL</strong> above must be set. Logging in through the front end checks the password with <code>wp_authenticate()</code> and sets no WordPress cookies: the front end keeps its own session, and a two-factor plugin on the WordPress login screen does not apply to it."
 msgstr ""
 
-#: src/Admin/MembersSection.php:80
-msgid "Treat accounts with the Subscriber role that have never chosen as subscribed to new posts by email. A member's own choice, once made, always wins."
-msgstr ""
-
-#: src/Admin/MembersSection.php:89
-msgid "Also remove what Gallop recorded about members: whether their address was confirmed, their email preferences, and their session version. Accounts and comments are never removed."
+#: src/Admin/MembersSection.php:35
+msgid "Accounts with the Subscriber role that have never chosen count as subscribed to new posts by email; a member's own choice on their profile always wins. Deleting the plugin removes what it recorded about members and leaves accounts and comments alone."
 msgstr ""
 
 #: src/Admin/Menu.php:22
@@ -391,17 +379,17 @@ msgstr ""
 msgid "%1$s replied to your comment on \"%2$s\""
 msgstr ""
 
-#: src/Members/Member.php:94
+#: src/Members/Member.php:88
 msgid "Please log in again."
 msgstr ""
 
 #. translators: 1: fewest characters, 2: most characters.
-#: src/Members/Member.php:193
+#: src/Members/Member.php:186
 msgid "Please choose a password of %1$d to %2$d characters."
 msgstr ""
 
 #: src/Rest/AuthEndpoint.php:74
-#: src/Rest/MembersEndpoint.php:178
+#: src/Rest/MembersEndpoint.php:184
 msgid "Too many login attempts. Please try again later."
 msgstr ""
 
@@ -410,14 +398,14 @@ msgid "Invalid username or password."
 msgstr ""
 
 #: src/Rest/CommentsEndpoint.php:207
-#: src/Rest/MembersEndpoint.php:597
+#: src/Rest/MembersEndpoint.php:605
 msgid "A valid visitor IP address is required."
 msgstr ""
 
 #: src/Rest/CommentsEndpoint.php:241
 #: src/Rest/CommentsEndpoint.php:581
-#: src/Rest/MembersEndpoint.php:252
-#: src/Rest/MembersEndpoint.php:489
+#: src/Rest/MembersEndpoint.php:259
+#: src/Rest/MembersEndpoint.php:497
 msgid "Please enter a valid email address."
 msgstr ""
 
@@ -487,40 +475,40 @@ msgstr ""
 msgid "The comment was not accepted."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:471
+#: src/Rest/MembersEndpoint.php:479
 msgid "Please enter a name."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:518
+#: src/Rest/MembersEndpoint.php:526
 msgid "Your current password is not right."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:529
+#: src/Rest/MembersEndpoint.php:537
 msgid "That email address is already in use."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:540
+#: src/Rest/MembersEndpoint.php:548
 msgid "The changes could not be saved."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:616
+#: src/Rest/MembersEndpoint.php:624
 msgid "Set the Next.js Production URL under Gallop → Settings before members can sign up."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:625
+#: src/Rest/MembersEndpoint.php:633
 msgid "The email address or password is not right."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:634
+#: src/Rest/MembersEndpoint.php:642
 msgid "This link has expired or was already used. Please ask for a new one."
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:656
+#: src/Rest/MembersEndpoint.php:664
 msgid "Reader"
 msgstr ""
 
-#: src/Rest/MembersEndpoint.php:673
-#: src/Rest/MembersEndpoint.php:686
+#: src/Rest/MembersEndpoint.php:681
+#: src/Rest/MembersEndpoint.php:694
 msgid "The account could not be created."
 msgstr ""
 

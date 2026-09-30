@@ -69,7 +69,7 @@ final class Settings
         );
 
         $this->connection->register(self::GROUP, self::PAGE);
-        $this->members->register(self::GROUP, self::PAGE);
+        $this->members->register(self::PAGE);
     }
 
     public static function sanitizeBool(mixed $value): bool

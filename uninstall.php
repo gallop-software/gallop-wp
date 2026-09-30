@@ -6,8 +6,7 @@
  * plugin's transients. Posts created under Gallop-registered custom post types are
  * intentionally left in place so user content survives an uninstall/reinstall
  * cycle. So are comments and member accounts: they belong to WordPress, not to this
- * plugin. What the plugin recorded about members is removed only if the owner
- * ticked "When the plugin is deleted" in its settings.
+ * plugin. What the plugin recorded about members, a few user meta rows, goes.
  */
 
 declare(strict_types=1);
@@ -53,17 +52,12 @@ if (!function_exists('gallop_delete_transients')) {
 
 if (!function_exists('gallop_delete_member_data')) {
     /**
-     * Removes the user meta and comment meta the plugin added, if the owner asked.
-     * Must run before the options go: the choice is one of them.
+     * Removes the user meta and comment meta the plugin added.
      *
      * @param list<string> $memberMeta
      */
     function gallop_delete_member_data(array $memberMeta): void
     {
-        if (!get_option('gallop_uninstall_member_data', false)) {
-            return;
-        }
-
         foreach ($memberMeta as $key) {
             delete_metadata('user', 0, $key, '', true);
         }
@@ -80,8 +74,6 @@ if (!function_exists('gallop_uninstall')) {
             'gallop_trust_forwarded_ip',
             'gallop_api_key_hash',
             'gallop_api_key_permissions',
-            'gallop_members_legacy_subscribed',
-            'gallop_uninstall_member_data',
         ];
 
         // Login attempts, wrong API keys, a key waiting to be shown, sign-ups waiting
@@ -94,7 +86,7 @@ if (!function_exists('gallop_uninstall')) {
             'gallop_confirm_sent_',
         ];
 
-        // What was recorded about members, if the owner asked for it to go too.
+        // What was recorded about members.
         $memberMeta = [
             'gallop_verified',
             'gallop_subscribed',

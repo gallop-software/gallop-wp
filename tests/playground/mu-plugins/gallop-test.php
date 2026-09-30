@@ -77,7 +77,6 @@ add_action('rest_api_init', static function (): void {
                 'show_avatars', 'comment_registration', 'close_comments_for_old_posts',
                 'close_comments_days_old', 'disallowed_keys', 'moderation_keys', 'comment_max_links',
                 'gallop_api_key_permissions', 'gallop_nextjs_production_url',
-                'gallop_members_legacy_subscribed', 'gallop_uninstall_member_data',
             ];
             if (!in_array($name, $allowed, true)) {
                 return new WP_Error('gallop_test_option', 'Not an option the tests may set.', ['status' => 400]);

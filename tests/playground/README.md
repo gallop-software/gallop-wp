@@ -56,7 +56,7 @@ Front-end connection:
 5. With the key set in `wp-config.php` there is no button, and the status says where the key
    comes from. With an unusable key there, every admin screen shows a warning.
 6. **Manage members** is listed beside **Submit comments** and starts unticked. The
-   **Members** section below it shows its two settings.
+   **Members** section below it explains what it allows; it has no settings.
 
 ## Plugin Check
 
