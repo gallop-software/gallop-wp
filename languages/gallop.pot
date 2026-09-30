@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later license.
 msgid ""
 msgstr ""
-"Project-Id-Version: Gallop 1.1.0\n"
+"Project-Id-Version: Gallop 1.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/gallop\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-29T00:00:00+00:00\n"
+"POT-Creation-Date: undefined\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Domain: gallop\n"
 
@@ -126,6 +126,34 @@ msgstr ""
 msgid "<strong>Permissions.</strong> The key can do only what is ticked below. New permissions are always off until you turn them on."
 msgstr ""
 
+#: src/Admin/MembersSection.php:43
+msgid "Members"
+msgstr ""
+
+#: src/Admin/MembersSection.php:50
+msgid "Existing subscribers"
+msgstr ""
+
+#: src/Admin/MembersSection.php:59
+msgid "When the plugin is deleted"
+msgstr ""
+
+#: src/Admin/MembersSection.php:71
+msgid "With the \"Manage members\" permission ticked above, your front end can let readers log in with their WordPress account, sign up, reset a password, and edit their profile. Accounts are ordinary WordPress users with the Subscriber role. Nothing is created until the reader opens the confirmation email."
+msgstr ""
+
+#: src/Admin/MembersSection.php:72
+msgid "The confirmation and reset emails are sent by WordPress and link to your front end, so the <strong>Next.js Production URL</strong> above must be set. Logging in through the front end checks the password with <code>wp_authenticate()</code> and sets no WordPress cookies: the front end keeps its own session, and a two-factor plugin on the WordPress login screen does not apply to it."
+msgstr ""
+
+#: src/Admin/MembersSection.php:80
+msgid "Treat accounts with the Subscriber role that have never chosen as subscribed to new posts by email. A member's own choice, once made, always wins."
+msgstr ""
+
+#: src/Admin/MembersSection.php:89
+msgid "Also remove what Gallop recorded about members: whether their address was confirmed, their email preferences, and their session version. Accounts and comments are never removed."
+msgstr ""
+
 #: src/Admin/Menu.php:22
 #: src/Admin/Menu.php:23
 msgid "Gallop"
@@ -134,7 +162,7 @@ msgstr ""
 #: src/Admin/Menu.php:33
 #: src/Admin/Menu.php:34
 #: src/Admin/PostTypesPage.php:149
-#: src/Admin/Settings.php:44
+#: src/Admin/Settings.php:46
 msgid "Settings"
 msgstr ""
 
@@ -245,51 +273,135 @@ msgstr ""
 msgid "Add post type"
 msgstr ""
 
-#: src/Admin/Settings.php:46
+#: src/Admin/Settings.php:48
 msgid "When set, public front-end requests are 301-redirected to this URL with the same path. Leave blank to keep the default WordPress front end."
 msgstr ""
 
-#: src/Admin/Settings.php:53
+#: src/Admin/Settings.php:55
 msgid "Next.js Production URL"
 msgstr ""
 
-#: src/Admin/Settings.php:62
+#: src/Admin/Settings.php:64
 msgid "Trust proxy IP headers"
 msgstr ""
 
-#: src/Admin/Settings.php:99
+#: src/Admin/Settings.php:102
 msgid "Enable only if this site sits behind a trusted reverse proxy (Cloudflare, a load balancer, etc.) that overwrites these headers. Leaving it off is safer on direct-served sites; turning it on without a trusted proxy lets attackers bypass login rate limits by spoofing the header."
 msgstr ""
 
-#: src/Admin/Settings.php:108
+#: src/Admin/Settings.php:111
 msgid "Save settings"
 msgstr ""
 
-#: src/Auth/ApiKey.php:75
+#: src/Auth/ApiKey.php:87
 msgid "Submit comments"
 msgstr ""
 
-#: src/Auth/ApiKey.php:129
-msgid "An API key is required."
+#: src/Auth/ApiKey.php:88
+msgid "Manage members (log in, sign up, profiles)"
 msgstr ""
 
-#: src/Auth/ApiKey.php:141
-msgid "The API key is only accepted over HTTPS."
-msgstr ""
-
-#: src/Auth/ApiKey.php:154
+#: src/Auth/ApiKey.php:128
 msgid "This API key is not allowed to do that."
 msgstr ""
 
-#: src/Auth/ApiKey.php:437
+#: src/Auth/ApiKey.php:181
+msgid "An API key is required."
+msgstr ""
+
+#: src/Auth/ApiKey.php:193
+msgid "The API key is only accepted over HTTPS."
+msgstr ""
+
+#: src/Auth/ApiKey.php:467
 msgid "Too many invalid API keys. Please try again later."
 msgstr ""
 
-#: src/Auth/ApiKey.php:446
+#: src/Auth/ApiKey.php:476
 msgid "Invalid API key."
 msgstr ""
 
+#. translators: %s: site name.
+#: src/Members/Mailer.php:75
+msgid "Confirm your email address for %s"
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:77
+msgid "Confirm your account on %s"
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:82
+msgid "Please confirm your email address for %s by opening this link:"
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:84
+msgid "Thanks for signing up to %s. Please confirm your email address by opening this link:"
+msgstr ""
+
+#: src/Members/Mailer.php:88
+msgid "The link works once and expires in 48 hours. If you did not ask for this, you can ignore this email; nothing happens until the link is opened."
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:105
+msgid "Someone, probably you, tried to sign up to %s with this email address. You already have an account, so you can just log in:"
+msgstr ""
+
+#: src/Members/Mailer.php:109
+msgid "If you have forgotten your password, use the \"Forgot password?\" link there. If this was not you, you can ignore this email."
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:113
+msgid "You already have an account on %s"
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:127
+msgid "Someone asked to reset the password for your account on %s. To choose a new password, open this link:"
+msgstr ""
+
+#: src/Members/Mailer.php:131
+msgid "The link works once and expires in 24 hours. If you did not ask for this, you can ignore this email; your password will not change."
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Members/Mailer.php:135
+msgid "Reset your password for %s"
+msgstr ""
+
+#. translators: 1: who replied, 2: post title.
+#: src/Members/Mailer.php:150
+msgid "%1$s replied to your comment on \"%2$s\":"
+msgstr ""
+
+#: src/Members/Mailer.php:154
+msgid "Read it and answer here:"
+msgstr ""
+
+#: src/Members/Mailer.php:157
+msgid "You are receiving this because you asked to be told about replies. You can turn that off on your profile page:"
+msgstr ""
+
+#. translators: 1: who replied, 2: post title.
+#: src/Members/Mailer.php:162
+msgid "%1$s replied to your comment on \"%2$s\""
+msgstr ""
+
+#: src/Members/Member.php:94
+msgid "Please log in again."
+msgstr ""
+
+#. translators: 1: fewest characters, 2: most characters.
+#: src/Members/Member.php:193
+msgid "Please choose a password of %1$d to %2$d characters."
+msgstr ""
+
 #: src/Rest/AuthEndpoint.php:74
+#: src/Rest/MembersEndpoint.php:178
 msgid "Too many login attempts. Please try again later."
 msgstr ""
 
@@ -297,79 +409,119 @@ msgstr ""
 msgid "Invalid username or password."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:205
+#: src/Rest/CommentsEndpoint.php:207
+#: src/Rest/MembersEndpoint.php:597
 msgid "A valid visitor IP address is required."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:229
-#: src/Rest/CommentsEndpoint.php:633
+#: src/Rest/CommentsEndpoint.php:241
+#: src/Rest/CommentsEndpoint.php:581
+#: src/Rest/MembersEndpoint.php:252
+#: src/Rest/MembersEndpoint.php:489
 msgid "Please enter a valid email address."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:314
-#: src/Rest/CommentsEndpoint.php:607
+#: src/Rest/CommentsEndpoint.php:327
+#: src/Rest/CommentsEndpoint.php:555
 msgid "No post with comments to read was found."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:363
+#: src/Rest/CommentsEndpoint.php:376
 msgid "Replies are switched off on this site."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:377
-#: src/Rest/CommentsEndpoint.php:663
+#: src/Rest/CommentsEndpoint.php:390
+#: src/Rest/CommentsEndpoint.php:611
 msgid "The comment being replied to is not available."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:385
+#: src/Rest/CommentsEndpoint.php:398
 msgid "This thread cannot be replied to any further."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:618
+#: src/Rest/CommentsEndpoint.php:566
 msgid "Comments are closed."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:623
+#: src/Rest/CommentsEndpoint.php:571
 msgid "This site only accepts comments from logged-in users."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:628
+#: src/Rest/CommentsEndpoint.php:576
 msgid "A name and an email address are required."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:638
+#: src/Rest/CommentsEndpoint.php:586
 msgid "Please write a comment."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:643
+#: src/Rest/CommentsEndpoint.php:591
 msgid "The name is too long."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:648
+#: src/Rest/CommentsEndpoint.php:596
 msgid "The email address is too long."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:653
+#: src/Rest/CommentsEndpoint.php:601
 msgid "The website address is too long."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:658
+#: src/Rest/CommentsEndpoint.php:606
 msgid "The comment is too long."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:668
+#: src/Rest/CommentsEndpoint.php:616
 msgid "This comment has already been posted."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:673
+#: src/Rest/CommentsEndpoint.php:621
 msgid "Comments are being posted too quickly. Please wait a moment."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:678
+#: src/Rest/CommentsEndpoint.php:626
 msgid "The comment could not be saved."
 msgstr ""
 
-#: src/Rest/CommentsEndpoint.php:687
+#: src/Rest/CommentsEndpoint.php:635
 msgid "The comment was not accepted."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:471
+msgid "Please enter a name."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:518
+msgid "Your current password is not right."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:529
+msgid "That email address is already in use."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:540
+msgid "The changes could not be saved."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:616
+msgid "Set the Next.js Production URL under Gallop → Settings before members can sign up."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:625
+msgid "The email address or password is not right."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:634
+msgid "This link has expired or was already used. Please ask for a new one."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:656
+msgid "Reader"
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:673
+#: src/Rest/MembersEndpoint.php:686
+msgid "The account could not be created."
 msgstr ""
 
 #. translators: 1: Plugin name (wrapped in <strong>), 2: Current PHP version.

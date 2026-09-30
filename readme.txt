@@ -4,11 +4,11 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A REST API for headless Next.js sites: a page's post, SEO, and site data in one request, plus cookie login for authenticated front ends.
+A REST API for headless Next.js sites: a page's post, SEO, and site data in one request, plus comments and member accounts that stay in WordPress.
 
 == Description ==
 
@@ -25,7 +25,7 @@ Most headless setups make you stitch together a waterfall of core WordPress REST
 #### Why choose Gallop?
 
 * **One round trip instead of five.** Everything a page needs — `post`, `seo`, and `site` — in a single response.
-* **No JWT, no separate auth service.** Cookie-based login is built in and wired to WordPress's own `wp_signon()`, and reading content needs no key at all.
+* **No JWT, no separate auth service.** Members log in, sign up, and reset passwords against WordPress's own user table, through your front end's server, and reading content needs no key at all.
 * **Comments that stay in WordPress.** Visitors comment on your front end; WordPress stores, moderates, and notifies exactly as it does for its own comment form.
 * **SEO done for you.** With Yoast active, the `seo` block ships search-ready out of the box.
 * **No-code custom post types.** Register REST-enabled CPTs from the admin — no `register_post_type()` boilerplate.
@@ -39,13 +39,13 @@ Hand Gallop a URI and it returns the whole page in a single response: the full `
 
 The SEO is done for you. With Yoast active, the `seo` block is populated straight from Yoast's indexables (canonical, meta description, OpenGraph, robots flags, reading time) so every page ships search-ready out of the box. Without Yoast, `seo` comes back as an empty object instead of disappearing, so your front end can check it and fall back to its own defaults.
 
-= Login, editing, and cache revalidation, already wired up =
+= Login, members, and comments, already wired up =
 
 https://vimeo.com/1200535505
 
-Moving off a WordPress template usually means rebuilding everything it gave you for free. Gallop ships with it already done. Cookie-based login is wired into the front end through the Gallop plugin, so editors sign in on your Next.js site with their normal WordPress credentials — no JWT layer, no separate auth service to stand up, and no API keys to manage.
+Moving off a WordPress template usually means rebuilding everything it gave you for free. Gallop ships with it already done. Readers log in, sign up, reset a password, and edit their profile on your Next.js site, and every one of them is an ordinary WordPress user. Editors sign in with their normal WordPress credentials. There is no JWT layer and no separate auth service to stand up: your front end's server talks to WordPress with one key, and keeps its own session for each member.
 
-Editing works the way your team already knows. Publish or update a post or page in WordPress and Gallop tells your Next.js site to revalidate the affected routes and clear their cache, so changes and new posts go live instantly with no full redeploy. Login, editing, and cache invalidation are all baked in, so you keep the WordPress workflow your team relies on and still ship a fast Next.js front end.
+Comments stay in WordPress too. Visitors and members comment on your front end; WordPress stores, moderates, and notifies exactly as it does for its own comment form.
 
 = Settings and custom post types, configured from WordPress =
 
@@ -75,20 +75,22 @@ All endpoints live under the `gallop/v1` namespace.
 * `GET|POST /gallop/v1/posts` — A filtered, paged collection of posts of one `type`. Accepts `category`, `include`, `meta_key` / `meta_value` / `meta_compare`, `orderby`, `order`, `size`, `offset`, and `fields`.
 * `GET|POST /gallop/v1/posts/list` — Slug, uri, and modified date for every published post of a `type`, for sitemaps and static builds. Optional `parent`.
 * `POST /gallop/v1/category` — Resolve a category URI to a term and return `category`, `seo`, and `site` payloads.
-* `POST /gallop/v1/auth/login` — Cookie-based login for a headless front end. Accepts `username`, `password`, and optional `remember`. Rate-limited per username/IP.
-* `POST /gallop/v1/auth/logout` — Log out the current user.
-* `GET  /gallop/v1/auth/session` — Return the current user payload and a `wp_rest` nonce, or `{ "user": null, "nonce": null }` when not logged in.
 * `GET  /gallop/v1/comments` — The approved comments on a `post`, oldest first, as a flat list with `parent` ids. Public.
-* `POST /gallop/v1/comments` — Submit a visitor's comment. Requires the API key.
+* `POST /gallop/v1/comments` — Submit a visitor's or a member's comment. Requires the API key.
+* `POST /gallop/v1/members/login`, `POST /gallop/v1/members`, `POST /gallop/v1/members/confirm`, `POST /gallop/v1/members/reset-request`, `POST /gallop/v1/members/reset`, `GET|PATCH /gallop/v1/members/{id}` — Members: log in, sign up, confirm an address, reset a password, read and edit a profile. All require the API key.
+* `POST /gallop/v1/auth/login`, `POST /gallop/v1/auth/logout`, `GET /gallop/v1/auth/session` — The older cookie-based login, kept for front ends on the same registered domain that use it.
 
-= Login support =
+= Members =
 
-Gallop ships with everything a Next.js site needs to authenticate users against WordPress — no extra plugin, no JWT layer to wire up:
+Readers get accounts, and WordPress is the only place they live. Every route takes the API key with the **Manage members** permission and is called by your front end's **server**, which keeps its own session for the member; WordPress is asked only when someone logs in or changes something.
 
-* **Cookie-based login** via `POST /gallop/v1/auth/login`, which calls WordPress's built-in `wp_signon()` and sets the standard auth cookies. A Next.js front end on the same registered domain can then make authenticated requests with credentials included.
-* **Session checks** via `GET /gallop/v1/auth/session`, so your front end can tell whether a visitor is logged in and render accordingly.
-* **Logout** via `POST /gallop/v1/auth/logout`.
-* **Brute-force protection** out of the box: five failed attempts per username + client IP within fifteen minutes return HTTP 429 until the window expires, with optional reverse-proxy IP awareness for sites behind Cloudflare or a load balancer.
+* **Log in** with an email address or username and a password, checked by `wp_authenticate()` as the visitor, so login-protection plugins see the visitor's address. No WordPress cookies are set.
+* **Sign up**: nothing is created until the reader opens the confirmation email; then they become a Subscriber, verified, and logged in. An address that already has an account is only marked subscribed. An email is never a way past a password.
+* **Reset a password** with WordPress's own reset keys, emailed as a link to your front end.
+* **Profiles**: name, email, password, and two email choices. Changing the email or password needs the current one and ends every session the front end holds, through a `sessionVersion` handed back with each request.
+* **Comments as themselves**, recorded as theirs, and accepted where only registered users may comment.
+
+Five wrong passwords for one login name from one address within fifteen minutes return HTTP 429; each address is sent at most one email every ten minutes and five a day; login, sign-up and reset answer the same whether or not the address is known.
 
 = Comments =
 
@@ -109,7 +111,7 @@ Reading from Gallop needs no key. Writing does: a request that changes something
 * **Send it** in the `X-Gallop-WP-Key` header, over HTTPS.
 * **Keep it on your server**, in a secret environment variable such as `GALLOP_WP_API_KEY`. Never give it a `NEXT_PUBLIC_` prefix, and never put it in code.
 * **Or set it in `wp-config.php`** with `define( 'GALLOP_WP_API_KEY', 'gallopwp_…' );`. A key set there takes priority over a generated one.
-* **Permissions are off by default.** A key can do only what you tick: "Submit comments" is the first. A permission added by a later version is never switched on for you.
+* **Permissions are off by default.** A key can do only what you tick: "Submit comments" and "Manage members". A permission added by a later version is never switched on for you.
 * **Regenerating** replaces the key at once.
 
 Gallop removes the key from the request as soon as it has been checked, so other plugins that read or forward request headers never see it.
@@ -147,26 +149,30 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 * `gallop_trust_forwarded_ip` (option) — whether to trust reverse-proxy IP headers when rate-limiting auth (default off).
 * `gallop_api_key_hash` (option) — a hash of your API key, with the date it was generated and its last four characters. Never the key itself.
 * `gallop_api_key_permissions` (option) — what the key is allowed to do.
+* `gallop_members_legacy_subscribed`, `gallop_uninstall_member_data` (options) — the two Members settings.
+* `gallop_verified`, `gallop_subscribed`, `gallop_reply_emails`, `gallop_session_version` (user meta) — a member's confirmed address, email choices, and session version. `_gallop_reply_notified` (comment meta) — a reply already emailed about.
 * `gallop_auth_*` (transients) — short-lived login rate-limit counters.
+* `gallop_pending_*` (transients) — sign-ups awaiting confirmation, up to 48 hours: address, names, and a hash of the link's key.
+* `gallop_confirm_sent_*` (transients) — when each address was last emailed, for a day.
 * `gallop_key_fail_*` (transients) — short-lived counters of wrong API keys, by address.
 * `gallop_key_reveal_*` (transient) — a newly generated key, held for up to two minutes so it can be shown once after the page reloads, then deleted.
 
-Comments submitted through Gallop are ordinary WordPress comments, stored where WordPress stores every comment.
+Comments submitted through Gallop are ordinary WordPress comments, and members are ordinary WordPress users, stored where WordPress stores them.
 
 == Installation ==
 
 1. Upload the `gallop` folder to `/wp-content/plugins/`, or install the ZIP from the Plugins screen.
 2. Activate **Gallop** from the Plugins screen.
-3. Point your Next.js front end at `https://your-wp-site.example/wp-json/gallop/v1` and start fetching `post`, `category`, and `auth` endpoints.
+3. Point your Next.js front end at `https://your-wp-site.example/wp-json/gallop/v1` and start fetching the `post` and `category` endpoints.
 4. (Optional) Open **Gallop** in the admin menu to register custom post types and set your Next.js production URL.
-5. (Optional) To accept comments from your front end, generate an API key under **Front-end connection**, tick **Submit comments**, and give the key to your front end's server.
+5. (Optional) To accept comments or members from your front end, generate an API key under **Front-end connection**, tick **Submit comments** and **Manage members**, and give the key to your front end's server. Member emails link to the Next.js production URL, so set it first.
 
 Requires PHP 8.1 or higher. The plugin will refuse to boot and show an admin notice on older PHP versions.
 
 == Screenshots ==
 
 1. The Gallop REST API in action — a request to the `gallop/v1` namespace returning post, SEO, and site data.
-2. Login UI: the headless auth flow signing in against `/gallop/v1/auth/login` with standard WordPress cookies.
+2. Login UI: a reader signing in on the front end with their WordPress account.
 3. Settings tab: point Gallop at your Next.js production URL, configure proxy IP trust for auth rate limiting, and generate the API key your front end writes with.
 4. Post Types tab: register REST-enabled custom post types (no code) and view their slugs and REST endpoints.
 
@@ -180,13 +186,21 @@ No. Gallop's REST endpoints are framework-agnostic JSON. Next.js is the referenc
 
 No. The redirect runs on `template_redirect` only, skips any request with a `preview=true` or `_wp*` query parameter, and never touches `/wp-admin` or `/wp-json`. Leave the Next.js URL setting blank to disable redirection entirely.
 
-= How does authentication work for the headless client? =
+= How do members log in on the front end? =
 
-`/gallop/v1/auth/login` calls `wp_signon()` and sets the standard WordPress auth cookies. A Next.js front end on the same registered domain can then call `/gallop/v1/auth/session` (or any other authenticated REST endpoint) with credentials included. There is no JWT layer — cookie auth is intentional.
+The front end's server sends the login name, password, and the visitor's address to `/gallop/v1/members/login` with the API key. Gallop checks the password with `wp_authenticate()`, the function behind wp-login.php, and answers with the member's details; the front end then keeps a session of its own for them. No WordPress cookies are involved, so the front end can be on any domain. A two-factor plugin on the WordPress login screen does not apply to front-end logins. The older `/gallop/v1/auth/*` routes, which set WordPress's own cookies for a front end on the same registered domain, still work.
+
+= What happens when someone signs up? =
+
+Nothing is written to the users table. Gallop keeps the address and names for up to 48 hours and emails a confirmation link to the front end. When the link is opened the front end calls `/gallop/v1/members/confirm`, and only then is a user created, with the Subscriber role. If the address already had an account, it is marked verified (and subscribed, if that was asked) and the person is told to log in; the link never logs anyone into an existing account. WordPress's "Anyone can register" setting is not consulted: the Manage members permission is the switch.
+
+= What emails does Gallop send? =
+
+Four, all through `wp_mail()` and all to the member: a confirmation link, a note that an address already has an account, a password reset link, and, if the member asked for it, a message when someone replies to their comment. Every link points at your Next.js production URL. The `gallop_member_email` filter can change or suppress any of them.
 
 = Is the login endpoint rate-limited? =
 
-Yes. Five failed attempts per username + client IP within fifteen minutes return HTTP 429 until the window expires. Successful logins clear the counter.
+Yes. Five failed attempts per login name + client IP within fifteen minutes return HTTP 429 until the window expires. Successful logins clear the counter. Login, sign-up, and reset requests also answer the same whether or not the account exists, and take the same time, so they cannot be used to find out who has an account.
 
 = What is the "Trust proxy IP headers" setting? =
 
@@ -241,13 +255,15 @@ No. Posts, pages, media, and built-in taxonomies are left alone. Only post types
 
 = What happens if I deactivate or delete the plugin? =
 
-Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes the `gallop_post_types`, `gallop_nextjs_production_url`, `gallop_trust_forwarded_ip`, `gallop_api_key_hash`, and `gallop_api_key_permissions` options plus any leftover rate-limit transients. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall. So are comments.
+Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes every `gallop_*` option and transient. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall. So are comments and member accounts. What Gallop recorded about members (user meta) is removed too only if you ticked "When the plugin is deleted" under Gallop → Settings → Members.
 
 == Privacy ==
 
 Gallop does not send any data to external services. All data stays on your WordPress site.
 
-The `/gallop/v1/auth/login` endpoint authenticates users with WordPress's built-in `wp_signon()` and sets the standard WordPress auth cookies. To mitigate brute-force attacks, Gallop temporarily stores failed-login counters in WordPress transients keyed by username and by the requesting IP address. These counters expire automatically (typically within 15 minutes) and are removed on plugin uninstall.
+The login endpoints authenticate users with WordPress's built-in functions. To mitigate brute-force attacks, Gallop temporarily stores failed-login counters in WordPress transients keyed by a hash of the login name and the visitor's IP address. These counters expire automatically (typically within 15 minutes) and are removed on plugin uninstall.
+
+A sign-up is kept as a transient for up to 48 hours (the address, the names typed, and a hash of the confirmation key), then becomes a WordPress user or expires. Gallop emails members through `wp_mail()` only what they asked for: confirmation and reset links, a note that an address already has an account, and replies to their comments if they turned that on. It records when each address was last emailed, for a day, to limit how often one can be written to.
 
 When a request presents a wrong API key, Gallop counts it in a transient keyed by a hash of the requesting IP address. That counter also expires within 15 minutes and is removed on uninstall.
 
@@ -256,6 +272,14 @@ A comment submitted through `/gallop/v1/comments` is stored by WordPress with th
 No personal data is shared with third parties. No tracking, analytics, or telemetry is performed.
 
 == Changelog ==
+
+= 1.2.0 =
+* Added members: `POST /gallop/v1/members/login`, `POST /gallop/v1/members` (sign up), `/members/confirm`, `/members/reset-request`, `/members/reset`, and `GET|PATCH /members/{id}`. A front end's server can let readers log in with `wp_authenticate()`, sign up with email confirmation, reset a password with WordPress's own keys, and edit a profile, with no WordPress cookies involved. All need the API key with the new "Manage members" permission, which starts off.
+* A member logged in on the front end can comment as themselves: `POST /gallop/v1/comments` takes `user` and `sessionVersion`, and `GET` reports `openToMembers`.
+* A member can ask to be emailed when someone replies to their comment.
+* Two settings under Gallop → Settings → Members: whether existing Subscriber accounts count as subscribed to new posts by email, and whether deleting the plugin removes what it recorded about members.
+* New filters: `gallop_member_data`, `gallop_member_email`. New actions: `gallop_member_login`, `gallop_member_login_failed`, `gallop_member_signup_requested`, `gallop_member_verified`, `gallop_member_registered`, `gallop_member_password_reset`, `gallop_member_updated`.
+* Existing endpoints and their responses are unchanged, except that `GET /gallop/v1/comments` gains one field.
 
 = 1.1.0 =
 * Added `/gallop/v1/comments`. `GET` returns a post's approved comments as a flat list with `parent` ids, ready to thread. `POST` submits a visitor's comment through WordPress's own comment form handling, so Discussion settings, moderation, the duplicate and flood checks, anti-spam plugins, and notification emails all behave as they do for a comment left on a WordPress site.
@@ -288,6 +312,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Optional Next.js production URL redirect for public front-end requests.
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Adds member accounts for front ends: login, sign-up with email confirmation, password reset, and profiles. Nothing changes for existing requests, and the new permission starts switched off.
 
 = 1.1.0 =
 Adds comment endpoints and an API key for front ends that write to WordPress. Nothing changes for existing requests. No key exists until you generate one, and its permissions start switched off.

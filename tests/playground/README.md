@@ -38,6 +38,11 @@ PHP=8.1 npx -y @php-wasm/cli@latest -l src/Auth/ApiKey.php
 Start the server and log in at <http://127.0.0.1:9400/wp-login.php> with `admin` /
 `password`. The site is thrown away when the server stops.
 
+`checks.mjs` covers the members routes end to end: sign-up, the captured confirmation
+email, confirming, logging in, password reset, profile changes, session versions, comments
+as a member, and reply emails. The member's comment checks wait out WordPress's
+fifteen-second flood rule, so the main run takes about a minute.
+
 The settings screen is not covered by `checks.mjs`. Check by hand, under Gallop → Settings →
 Front-end connection:
 
@@ -50,6 +55,8 @@ Front-end connection:
    still ticked.
 5. With the key set in `wp-config.php` there is no button, and the status says where the key
    comes from. With an unusable key there, every admin screen shows a warning.
+6. **Manage members** is listed beside **Submit comments** and starts unticked. The
+   **Members** section below it shows its two settings.
 
 ## Plugin Check
 
@@ -69,5 +76,6 @@ of the repository.
 
 `mu-plugins/gallop-test.php` is mounted into the test site only. It records the email
 WordPress would have sent, records what other plugins can see while a comment is saved,
-and adds routes under `gallop-test/v1` for setting options and reading stored rows. Its
-routes are open to anyone who can reach the server. Never install it on a real site.
+and adds routes under `gallop-test/v1` for setting options, reading stored comments and
+users, making a user the way another plugin would, and approving a comment. Its routes
+are open to anyone who can reach the server. Never install it on a real site.

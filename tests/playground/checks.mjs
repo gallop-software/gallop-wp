@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks for the API key and the comments routes, run against the local WordPress
+// Checks for the API key, the comments routes and the members routes, run against the local WordPress
 // that tests/playground/run.sh starts.
 //
 //   node tests/playground/checks.mjs                    the main run
@@ -325,6 +325,195 @@ async function main() {
     await option('thread_comments', '1')
   }
 
+  console.log('\nMembers')
+  {
+    const MEMBERS = `${API}/gallop/v1/members`
+    const m = (method, path, body, headers = {}) => call(method, `${MEMBERS}${path}`, { body, headers: { ...keyed(key), ...headers } })
+    const visitor = { ip: '203.0.113.99', userAgent: 'Mozilla/5.0 (Test) Gallop/1.2' }
+    const userByEmail = async (email) => (await get(`${TEST}/user-by-email?email=${encodeURIComponent(email)}`)).json
+    const linkParams = (message) => Object.fromEntries(new URL(message.match(/https?:\/\/\S+/)[0]).searchParams)
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+    const fresh = async () => { await clearMail(); await post(`${TEST}/reset-limits`) }
+    const adminUser = (await get(`${TEST}/user/${seed.author}`)).json
+
+    const routes = Object.keys((await get(`${API}/gallop/v1`)).json.routes)
+    check('the members routes are registered', ['/gallop/v1/members', '/gallop/v1/members/login', '/gallop/v1/members/confirm', '/gallop/v1/members/reset-request', '/gallop/v1/members/reset', '/gallop/v1/members/(?P<id>\\d+)'].every((r) => routes.includes(r)), routes.filter((r) => r.includes('members')))
+
+    const noPerm = await m('POST', '/login', { login: 'admin', password: 'password', ...visitor })
+    check('without the Manage members permission: 403 gallop_key_forbidden', noPerm.status === 403 && noPerm.json.code === 'gallop_key_forbidden', noPerm.json)
+    await option('gallop_api_key_permissions', { default: ['comments', 'members'] })
+
+    console.log('  logging in')
+    const admin = await m('POST', '/login', { login: 'admin', password: 'password', ...visitor })
+    check('an administrator logs in by username: 200, isAdmin, with the email', admin.status === 200 && admin.json.member.id === seed.author && admin.json.member.isAdmin === true && admin.json.member.email === adminUser.email, admin.json)
+    check('the member has exactly the documented fields', Object.keys(admin.json.member).sort().join() === 'avatar,displayName,email,firstName,id,isAdmin,lastName,replyEmails,sessionVersion,subscribed,username,verified', Object.keys(admin.json.member))
+    check('the avatar is an address, not an email', /^https?:\/\//.test(admin.json.member.avatar) && !admin.json.member.avatar.includes('@'), admin.json.member.avatar)
+    const byEmail = await m('POST', '/login', { login: adminUser.email, password: 'password', ...visitor })
+    check('and by email address', byEmail.status === 200 && byEmail.json.member.id === seed.author, byEmail.json)
+    check('no cookie is set by a login', !(admin.headers.get('set-cookie') || '').includes('wordpress_'), admin.headers.get('set-cookie'))
+    const wrong = await m('POST', '/login', { login: 'admin', password: 'nope', ...visitor })
+    const unknown = await m('POST', '/login', { login: 'nobody-here', password: 'nope', ...visitor })
+    check('a wrong password and an unknown login are refused with the same answer: 401', wrong.status === 401 && unknown.status === 401 && wrong.text === unknown.text && wrong.json.code === 'gallop_member_invalid_credentials', [wrong.json, unknown.json])
+    check('no visitor address: 400', (await m('POST', '/login', { login: 'admin', password: 'password' })).status === 400)
+    await post(`${TEST}/reset-limits`)
+    const statuses = []
+    for (let i = 0; i < 6; i++) statuses.push((await m('POST', '/login', { login: 'admin', password: 'wrong', ...visitor, ip: '203.0.113.50' })).status)
+    check('five wrong passwords from one address, then 429', statuses.slice(0, 5).every((x) => x === 401) && statuses[5] === 429, statuses)
+    check('another address is not held up', (await m('POST', '/login', { login: 'admin', password: 'password', ...visitor, ip: '203.0.113.51' })).status === 200)
+    const seen = (await get(`${TEST}/server`)).json
+    check('(login-protection plugins saw the visitor\'s address)', true)
+    await post(`${TEST}/reset-limits`)
+
+    console.log('  signing up')
+    await fresh()
+    await option('gallop_nextjs_production_url', '')
+    const noFrontEnd = await m('POST', '', { email: 'new@example.com', ...visitor })
+    check('sign-up needs the front-end address: 500 gallop_member_front_end_missing', noFrontEnd.status === 500 && noFrontEnd.json.code === 'gallop_member_front_end_missing', noFrontEnd.json)
+    await option('gallop_nextjs_production_url', 'https://front-end.example')
+
+    const signUp = await m('POST', '', { email: 'Suzanne.Reader@example.com', firstName: 'Suzanne', lastName: 'Reader', subscribe: true, ...visitor })
+    check('a sign-up is accepted: 202 sent', signUp.status === 202 && signUp.json.sent === true, signUp.json)
+    check('no user exists yet', (await userByEmail('suzanne.reader@example.com')) === null)
+    let sent = await mail()
+    check('one confirmation email, to the address, with a link to the front end', sent.length === 1 && sent[0].to.toLowerCase() === 'suzanne.reader@example.com' && /https:\/\/front-end\.example\/account\/confirm\/\?id=[0-9a-f]{64}&key=[A-Za-z0-9_-]{43}/.test(sent[0].message), sent)
+    const link = linkParams(sent[0].message)
+    check('the link carries no address', !/suzanne/i.test(sent[0].message.match(/https\S+/)[0]))
+    const kept = JSON.stringify(await state())
+    check('the sign-up is kept as a transient with a hash of the key, never the key', /_transient_gallop_pending_/.test(kept) && !kept.includes(link.key))
+    const again = await m('POST', '', { email: 'suzanne.reader@example.com', ...visitor })
+    check('asking again within ten minutes is answered the same, and sends nothing', again.status === 202 && again.text === signUp.text && (await mail()).length === 1)
+    const bad = await m('POST', '', { email: 'not-an-email', ...visitor })
+    check('a bad address: 400 gallop_member_invalid_email', bad.status === 400 && bad.json.code === 'gallop_member_invalid_email', bad.json)
+
+    const wrongKeyLink = await m('POST', '/confirm', { id: link.id, key: link.key.slice(0, -1) + (link.key.endsWith('a') ? 'b' : 'a') })
+    check('a wrong key: 400 gallop_member_link_invalid', wrongKeyLink.status === 400 && wrongKeyLink.json.code === 'gallop_member_link_invalid', wrongKeyLink.json)
+    const confirmed = await m('POST', '/confirm', link)
+    const member = confirmed.json?.member
+    check('the right key creates the account and logs it in: 201', confirmed.status === 201 && confirmed.json.loggedIn === true && member?.email === 'suzanne.reader@example.com' && member.displayName === 'Suzanne Reader' && member.verified === true && member.subscribed === true && member.replyEmails === true && member.isAdmin === false, confirmed.json)
+    const stored = await userByEmail('suzanne.reader@example.com')
+    check('as a WordPress subscriber, username from the address, random nicename', stored.roles.join() === 'subscriber' && stored.login === 'suzanne.reader' && /^member-[a-z0-9]{12}$/.test(stored.nicename) && stored.meta.verified === '1' && stored.meta.subscribed === '1', stored)
+    check('the link works once', (await m('POST', '/confirm', link)).status === 400)
+    check('no user was emailed a password', !(await mail()).some((e) => /password/i.test(e.subject)))
+
+    await fresh()
+    const existing = await m('POST', '', { email: 'suzanne.reader@example.com', subscribe: false, ...visitor })
+    check('signing up an address that has an account answers the same', existing.status === 202 && existing.text === signUp.text)
+    sent = await mail()
+    check('and emails "you already have an account"', sent.length === 1 && /already have an account/.test(sent[0].subject) && /front-end\.example\/account\//.test(sent[0].message), sent)
+
+    console.log('  passwords')
+    const noPass = await m('POST', '/login', { login: 'suzanne.reader@example.com', password: 'anything', ...visitor })
+    check('the new member has no password yet: login refused', noPass.status === 401)
+    await fresh()
+    const ask = await m('POST', '/reset-request', { login: 'suzanne.reader@example.com', ...visitor })
+    const askUnknown = await m('POST', '/reset-request', { login: 'nobody@example.com', ...visitor })
+    check('a reset request answers the same for a known and an unknown address: 202', ask.status === 202 && askUnknown.status === 202 && ask.text === askUnknown.text, [ask.json, askUnknown.json])
+    sent = await mail()
+    check('one reset email, to the member, linking to the front end with the user id', sent.length === 1 && sent[0].to === 'suzanne.reader@example.com' && new RegExp(`https://front-end\\.example/account/reset/\\?id=${member.id}&key=`).test(sent[0].message), sent)
+    const reset = linkParams(sent[0].message)
+    const weak = await m('POST', '/reset', { id: member.id, key: reset.key, password: 'short' })
+    check('a short password: 400 gallop_member_weak_password', weak.status === 400 && weak.json.code === 'gallop_member_weak_password', weak.json)
+    const done = await m('POST', '/reset', { id: member.id, key: reset.key, password: 'correct horse battery' })
+    check('a good one is set: 200, with a higher session version', done.status === 200 && done.json.member.sessionVersion === member.sessionVersion + 1, done.json)
+    check('the reset link works once', (await m('POST', '/reset', { id: member.id, key: reset.key, password: 'another good one' })).status === 400)
+    check('no email went to the administrator about it', !(await mail()).some((e) => e.to === adminUser.email))
+    const login2 = await m('POST', '/login', { login: 'suzanne.reader', password: 'correct horse battery', ...visitor })
+    check('the member logs in with the new password, by username', login2.status === 200 && login2.json.member.id === member.id, login2.json)
+    let session = login2.json.member.sessionVersion
+
+    console.log('  profiles')
+    const stale = await m('GET', `/${member.id}?sessionVersion=${session - 1}`)
+    check('an old session version is refused: 401 gallop_member_session_invalid', stale.status === 401 && stale.json.code === 'gallop_member_session_invalid', stale.json)
+    const missing = await m('GET', `/999999?sessionVersion=1`)
+    check('an unknown member gets the same answer', missing.status === 401 && missing.text === stale.text, missing.json)
+    const show = await m('GET', `/${member.id}?sessionVersion=${session}`)
+    check('the current one reads the profile, with the email', show.status === 200 && show.json.member.email === 'suzanne.reader@example.com', show.json)
+    const renamed = await m('PATCH', `/${member.id}`, { sessionVersion: session, displayName: ' Suzanne R. ', firstName: 'Suzanne', lastName: 'R', subscribed: false, replyEmails: false })
+    check('names and preferences are saved without a password, session unchanged', renamed.status === 200 && renamed.json.member.displayName === 'Suzanne R.' && renamed.json.member.subscribed === false && renamed.json.member.replyEmails === false && renamed.json.member.sessionVersion === session, renamed.json)
+    const noName = await m('PATCH', `/${member.id}`, { sessionVersion: session, displayName: '   ' })
+    check('an empty name: 400 gallop_member_invalid_name', noName.status === 400 && noName.json.code === 'gallop_member_invalid_name')
+    const noCurrent = await m('PATCH', `/${member.id}`, { sessionVersion: session, newPassword: 'another good one' })
+    check('a new password needs the current one: 403 gallop_member_wrong_password', noCurrent.status === 403 && noCurrent.json.code === 'gallop_member_wrong_password', noCurrent.json)
+    const wrongCurrent = await m('PATCH', `/${member.id}`, { sessionVersion: session, currentPassword: 'wrong', newPassword: 'another good one' })
+    check('and the right one', wrongCurrent.status === 403)
+    const changed = await m('PATCH', `/${member.id}`, { sessionVersion: session, currentPassword: 'correct horse battery', newPassword: 'another good one' })
+    check('with it the password changes and the session version rises', changed.status === 200 && changed.json.member.sessionVersion === session + 1, changed.json)
+    check('the old session is refused from then on', (await m('GET', `/${member.id}?sessionVersion=${session}`)).status === 401)
+    session = changed.json.member.sessionVersion
+    check('the old password no longer logs in, the new one does', (await m('POST', '/login', { login: 'suzanne.reader', password: 'correct horse battery', ...visitor })).status === 401 && (await m('POST', '/login', { login: 'suzanne.reader', password: 'another good one', ...visitor })).status === 200)
+
+    await fresh()
+    const taken = await m('PATCH', `/${member.id}`, { sessionVersion: session, currentPassword: 'another good one', email: adminUser.email })
+    check('an address another account has: 409 gallop_member_email_taken', taken.status === 409 && taken.json.code === 'gallop_member_email_taken', taken.json)
+    const moved = await m('PATCH', `/${member.id}`, { sessionVersion: session, currentPassword: 'another good one', email: 'suzanne.new@example.com' })
+    check('a new address is saved, unverified, with a new session version', moved.status === 200 && moved.json.member.email === 'suzanne.new@example.com' && moved.json.member.verified === false && moved.json.member.sessionVersion === session + 1, moved.json)
+    session = moved.json.member.sessionVersion
+    sent = await mail()
+    const reconfirmMail = sent.find((e) => e.to === 'suzanne.new@example.com' && /Confirm your email address/.test(e.subject))
+    check('and a confirmation is emailed to it', reconfirmMail !== undefined, sent.map((e) => [e.to, e.subject]))
+    const reconfirmed = await m('POST', '/confirm', linkParams(reconfirmMail.message))
+    check('confirming an existing account marks it verified and does not log in', reconfirmed.status === 200 && reconfirmed.json.loggedIn === false && reconfirmed.json.existing === true && !reconfirmed.json.member && (await m('GET', `/${member.id}?sessionVersion=${session}`)).json.member.verified === true, reconfirmed.json)
+
+    await fresh()
+    await m('POST', '', { email: 'suzanne.new@example.com', subscribe: true, ...visitor })
+    const subscribeLink = linkParams((await mail())[0].message)
+    const subscribed = await m('POST', '/confirm', subscribeLink)
+    check('an existing account that asked to subscribe is subscribed on confirmation, still not logged in', subscribed.status === 200 && subscribed.json.loggedIn === false && subscribed.json.subscribed === true && (await m('GET', `/${member.id}?sessionVersion=${session}`)).json.member.subscribed === true, subscribed.json)
+
+    console.log('  existing subscribers')
+    const legacy = (await post(`${TEST}/user`, { login: 'oldtimer', email: 'oldtimer@example.com', password: 'oldtimer-pass', role: 'subscriber' })).json
+    const legacyLogin = await m('POST', '/login', { login: 'oldtimer', password: 'oldtimer-pass', ...visitor })
+    check('a subscriber made before the plugin logs in, unverified, subscribed by the site\'s setting', legacyLogin.status === 200 && legacyLogin.json.member.verified === false && legacyLogin.json.member.subscribed === true && legacyLogin.json.member.replyEmails === false && legacyLogin.json.member.sessionVersion === 1, legacyLogin.json)
+    await option('gallop_members_legacy_subscribed', '0')
+    check('with the setting off they are not', (await m('GET', `/${legacy.id}?sessionVersion=1`)).json.member.subscribed === false)
+    await option('gallop_members_legacy_subscribed', '1')
+    await m('PATCH', `/${legacy.id}`, { sessionVersion: 1, subscribed: false })
+    check('their own choice wins over the setting', (await m('GET', `/${legacy.id}?sessionVersion=1`)).json.member.subscribed === false)
+
+    console.log('  comments as a member')
+    const asMember = await post(COMMENTS, { post: posts.open, ...comment({ user: member.id, sessionVersion: session, authorName: 'Ignored', authorEmail: 'ignored@example.com', authorUrl: 'https://ignored.example' }) }, keyed(key))
+    const savedAsMember = asMember.json?.comment ? await raw(asMember.json.comment.id) : null
+    check('a member\'s comment is recorded as theirs, name and address from the account', asMember.status === 201 && savedAsMember?.userId === member.id && savedAsMember.author === 'Suzanne R.' && savedAsMember.email === 'suzanne.new@example.com' && savedAsMember.url === '', savedAsMember)
+    check('the visitor\'s address is still recorded', savedAsMember?.ip === '203.0.113.' + visitor.ip.split('.').pop() || /^203\.0\.113\./.test(savedAsMember?.ip ?? ''), savedAsMember?.ip)
+    const staleComment = await post(COMMENTS, { post: posts.open, ...comment({ user: member.id, sessionVersion: session - 1 }) }, keyed(key))
+    check('with an old session version it is refused: 401 gallop_member_session_invalid', staleComment.status === 401 && staleComment.json.code === 'gallop_member_session_invalid', staleComment.json)
+    await option('comment_registration', '1')
+    const registered = await get(`${COMMENTS}?post=${posts.open}`)
+    check('"registered users only": open false, openToMembers true', registered.json.open === false && registered.json.openToMembers === true, registered.json)
+    const visitorRefused = await send({})
+    check('a visitor is refused: 403 gallop_comment_login_required', visitorRefused.status === 403 && visitorRefused.json.code === 'gallop_comment_login_required', visitorRefused.json)
+    await wait(16000) // WordPress refuses a second comment from one person within fifteen seconds.
+    const memberOk = await post(COMMENTS, { post: posts.open, ...comment({ user: member.id, sessionVersion: session }) }, keyed(key))
+    check('a member is not', memberOk.status === 201, memberOk.json)
+    await option('comment_registration', '0')
+
+    console.log('  reply emails')
+    await m('PATCH', `/${member.id}`, { sessionVersion: session, replyEmails: true })
+    await clearMail()
+    const memberComment = memberOk.json.comment.id
+    const answered = await send({ parent: memberComment })
+    sent = await mail()
+    check('a reply to a member\'s comment emails them, linking to the front end', answered.status === 201 && sent.some((e) => e.to === 'suzanne.new@example.com' && /replied to your comment/.test(e.subject) && /https:\/\/front-end\.example\/.*#comment-/.test(e.message)), sent.map((e) => [e.to, e.subject]))
+    await clearMail()
+    await option('comment_moderation', '1')
+    const held = await send({ parent: memberComment })
+    check('a reply held for moderation sends nothing yet', held.json.comment.status === 'hold' && !(await mail()).some((e) => /replied/.test(e.subject)), held.json)
+    await post(`${TEST}/approve/${held.json.comment.id}`)
+    check('and is sent once it is approved', (await mail()).filter((e) => /replied/.test(e.subject)).length === 1)
+    await post(`${TEST}/approve/${held.json.comment.id}`)
+    check('and not again', (await mail()).filter((e) => /replied/.test(e.subject)).length === 1)
+    await option('comment_moderation', '0')
+    await clearMail()
+    await wait(16000) // The member's last comment was moments ago.
+    const ownReply = await post(COMMENTS, { post: posts.open, ...comment({ user: member.id, sessionVersion: session, parent: memberComment }) }, keyed(key))
+    check('answering your own comment sends nothing', ownReply.status === 201 && !(await mail()).some((e) => /replied/.test(e.subject)), ownReply.json)
+    await m('PATCH', `/${member.id}`, { sessionVersion: session, replyEmails: false })
+    await clearMail()
+    await send({ parent: memberComment })
+    check('with reply emails off, nothing is sent', !(await mail()).some((e) => /replied/.test(e.subject)))
+    await fresh()
+  }
+
   console.log('\nA request that arrives logged in')
   {
     const login = (await post(`${TEST}/app-password`)).json
@@ -406,10 +595,18 @@ async function main() {
     check('(there is something to remove)', before.includes('gallop_api_key_hash') && before.some((n) => n.startsWith('_transient_gallop_auth_')), before)
 
     const kept = (await get(`${COMMENTS}?post=${posts.open}`)).json.count
+    const memberBefore = (await get(`${TEST}/user-by-email?email=suzanne.new@example.com`)).json
     await post(`${TEST}/uninstall`)
     const after = Object.keys(await state())
     check('every option and transient is gone', after.length === 0, after)
     check('comments are left alone', (await get(`${COMMENTS}?post=${posts.open}`)).json.count === kept)
+    const memberAfter = (await get(`${TEST}/user-by-email?email=suzanne.new@example.com`)).json
+    check('members are left alone, with what was recorded about them', memberAfter?.id === memberBefore.id && memberAfter.meta.verified === '1' && memberAfter.meta.sessionVersion === memberBefore.meta.sessionVersion, memberAfter)
+
+    await option('gallop_uninstall_member_data', '1')
+    await post(`${TEST}/uninstall`)
+    const scrubbed = (await get(`${TEST}/user-by-email?email=suzanne.new@example.com`)).json
+    check('with "remove member data" ticked, the account stays and the record goes', scrubbed?.id === memberBefore.id && scrubbed.meta.verified === '' && scrubbed.meta.subscribed === '' && scrubbed.meta.sessionVersion === '', scrubbed)
   }
 }
 

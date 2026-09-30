@@ -42,6 +42,7 @@ final class ApiKey
     public const DEFAULT_ID = 'default';
 
     public const CAP_COMMENTS = 'comments';
+    public const CAP_MEMBERS = 'members';
 
     private const SECRET_LENGTH = 43;
     private const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -84,6 +85,7 @@ final class ApiKey
     {
         $capabilities = [
             self::CAP_COMMENTS => __('Submit comments', 'gallop'),
+            self::CAP_MEMBERS => __('Manage members (log in, sign up, profiles)', 'gallop'),
         ];
 
         /**

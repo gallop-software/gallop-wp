@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
 }
 
 use Gallop\Auth\ApiKey;
+use Gallop\Members\Member;
+use Gallop\Support\Visitor;
 use WP_Comment;
 use WP_Error;
 use WP_Post;
@@ -20,7 +22,9 @@ use WP_REST_Server;
  * Comments for a headless front end: read a post's, and submit a visitor's.
  *
  * Reading is public, as it is on any WordPress site. Submitting needs the site's API
- * key, because it comes from the front end's server on a visitor's behalf.
+ * key, because it comes from the front end's server on a visitor's behalf. A member
+ * who is logged in on the front end comments as themselves: WordPress fills in their
+ * name and address and records the comment as theirs.
  *
  * A submission goes through wp_handle_comment_submission(), the function WordPress's
  * own comment form uses. Core's REST route for comments does not: it inserts the
@@ -43,25 +47,6 @@ final class CommentsEndpoint
 
     /** WordPress's own limit on the stored user agent. */
     private const USER_AGENT_MAX = 254;
-
-    /**
-     * Headers that describe the front end's server or the route the request took,
-     * not the visitor. They are hidden while a comment is saved, so nothing reads the
-     * server's address out of them in place of the visitor's.
-     */
-    private const PROXY_HEADERS = [
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_FORWARDED',
-        'HTTP_FORWARDED_FOR',
-        'HTTP_FORWARDED',
-        'HTTP_X_REAL_IP',
-        'HTTP_CLIENT_IP',
-        'HTTP_X_CLIENT_IP',
-        'HTTP_X_CLUSTER_CLIENT_IP',
-        'HTTP_TRUE_CLIENT_IP',
-        'HTTP_CF_CONNECTING_IP',
-        'HTTP_CF_CONNECTING_IPV6',
-    ];
 
     public function register(): void
     {
@@ -109,6 +94,20 @@ final class CommentsEndpoint
                     'ip' => $text,
                     'userAgent' => $text,
                     'referer' => $text,
+                    // A member logged in on the front end, with the session version
+                    // the front end holds for them. 0 for a visitor.
+                    'user' => [
+                        'required' => false,
+                        'default' => 0,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn ($value): bool => is_numeric($value) && (int) $value >= 0,
+                    ],
+                    'sessionVersion' => [
+                        'required' => false,
+                        'default' => 0,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn ($value): bool => is_numeric($value) && (int) $value >= 0,
+                    ],
                 ],
             ],
         ]);
@@ -153,6 +152,9 @@ final class CommentsEndpoint
         $data = [
             'post' => $post->ID,
             'open' => $this->isOpen($post),
+            // Open to a member logged in on the front end, which "registered users
+            // only" does not close.
+            'openToMembers' => comments_open($post),
             'count' => $count,
             'requireNameEmail' => (bool) get_option('require_name_email'),
             'threadDepth' => $this->threadDepth(),
@@ -220,9 +222,19 @@ final class CommentsEndpoint
             }
         }
 
+        // A member's name and address come from their account, not the form.
+        $userId = 0;
+        if ((int) $request->get_param('user') > 0) {
+            $member = Member::assertSession((int) $request->get_param('user'), (int) $request->get_param('sessionVersion'));
+            if ($member instanceof WP_Error) {
+                return $member;
+            }
+            $userId = $member->ID;
+        }
+
         // WordPress only checks the address when the site requires one, and would
         // store anything typed here otherwise.
-        $email = trim((string) $request->get_param('authorEmail'));
+        $email = $userId > 0 ? '' : trim((string) $request->get_param('authorEmail'));
         if ($email !== '' && !is_email($email)) {
             return new WP_Error(
                 'gallop_comment_invalid_email',
@@ -234,17 +246,18 @@ final class CommentsEndpoint
         // Unslashed, as wp-comments-post.php hands it over.
         $submission = [
             'comment_post_ID' => $post->ID,
-            'author' => (string) $request->get_param('authorName'),
+            'author' => $userId > 0 ? '' : (string) $request->get_param('authorName'),
             'email' => $email,
-            'url' => (string) $request->get_param('authorUrl'),
+            'url' => $userId > 0 ? '' : (string) $request->get_param('authorUrl'),
             'comment' => (string) $request->get_param('content'),
             'comment_parent' => $parent,
         ];
 
-        $result = $this->asVisitor(
+        $result = Visitor::run(
             $ip,
             $this->cleanUserAgent((string) $request->get_param('userAgent')),
             $this->cleanReferer((string) $request->get_param('referer')),
+            $userId,
             static fn () => wp_handle_comment_submission($submission)
         );
 
@@ -435,71 +448,6 @@ final class CommentsEndpoint
         $clean = esc_url_raw($referer, ['http', 'https']);
 
         return (is_string($clean) && wp_parse_url($clean, PHP_URL_HOST)) ? $clean : '';
-    }
-
-    /**
-     * Run a submission as the visitor: their address and browser, and logged out.
-     *
-     * WordPress and anti-spam plugins read a commenter's address and browser from
-     * $_SERVER, where PHP puts the details of whoever made the request. Here that is
-     * the front end's server, so every comment would be recorded, throttled and
-     * judged as coming from one address. For the length of the call the visitor's
-     * details are put in their place, and everything is put back afterwards whether
-     * or not the call succeeds.
-     *
-     * The visitor's details came from the front end. They are believed because the
-     * front end presented the site's key, which is checked before this can run.
-     *
-     * The request is also made anonymous. It normally is already, but if it arrived
-     * logged in -- through an Application Password, say -- WordPress would credit the
-     * comment to that user, skip the flood check, and filter its HTML as that
-     * user's.
-     */
-    private function asVisitor(string $ip, string $userAgent, string $referer, callable $fn): mixed
-    {
-        $names = array_merge(['REMOTE_ADDR', 'HTTP_USER_AGENT', 'HTTP_REFERER'], self::PROXY_HEADERS);
-
-        $snapshot = [];
-        foreach ($names as $name) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- kept only to be put back unchanged; never read or output.
-            $snapshot[$name] = array_key_exists($name, $_SERVER) ? $_SERVER[$name] : null;
-        }
-        $previousUser = get_current_user_id();
-
-        try {
-            foreach (self::PROXY_HEADERS as $name) {
-                unset($_SERVER[$name]);
-            }
-
-            $_SERVER['REMOTE_ADDR'] = $ip;
-            // WordPress adds slashes to $_SERVER when it starts, and takes them off
-            // again when it stores the comment.
-            $_SERVER['HTTP_USER_AGENT'] = wp_slash($userAgent);
-
-            if ($referer !== '') {
-                $_SERVER['HTTP_REFERER'] = wp_slash($referer);
-            } else {
-                unset($_SERVER['HTTP_REFERER']);
-            }
-
-            wp_set_current_user(0);
-            // Setting the user the request already has changes nothing and fires
-            // nothing, so the comment filters are set for a visitor by hand.
-            kses_init();
-
-            return $fn();
-        } finally {
-            foreach ($snapshot as $name => $value) {
-                if ($value === null) {
-                    unset($_SERVER[$name]);
-                } else {
-                    $_SERVER[$name] = $value;
-                }
-            }
-
-            wp_set_current_user($previousUser);
-            kses_init();
-        }
     }
 
     /**

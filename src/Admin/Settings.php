@@ -17,8 +17,10 @@ final class Settings
     private const SECTION = 'gallop_settings_section';
     public const PAGE = 'gallop';
 
-    public function __construct(private readonly ConnectionSection $connection)
-    {
+    public function __construct(
+        private readonly ConnectionSection $connection,
+        private readonly MembersSection $members,
+    ) {
     }
 
     public function register(): void
@@ -67,6 +69,7 @@ final class Settings
         );
 
         $this->connection->register(self::GROUP, self::PAGE);
+        $this->members->register(self::GROUP, self::PAGE);
     }
 
     public static function sanitizeBool(mixed $value): bool

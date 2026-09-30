@@ -28,6 +28,7 @@ add_filter('pre_wp_mail', static function ($short, array $atts) {
         'to' => $atts['to'] ?? '',
         'subject' => $atts['subject'] ?? '',
         'message' => $atts['message'] ?? '',
+        'headers' => $atts['headers'] ?? '',
     ];
     update_option(GALLOP_TEST_MAIL, $log, false);
 
@@ -75,7 +76,8 @@ add_action('rest_api_init', static function (): void {
                 'thread_comments', 'thread_comments_depth', 'comments_notify', 'moderation_notify',
                 'show_avatars', 'comment_registration', 'close_comments_for_old_posts',
                 'close_comments_days_old', 'disallowed_keys', 'moderation_keys', 'comment_max_links',
-                'gallop_api_key_permissions',
+                'gallop_api_key_permissions', 'gallop_nextjs_production_url',
+                'gallop_members_legacy_subscribed', 'gallop_uninstall_member_data',
             ];
             if (!in_array($name, $allowed, true)) {
                 return new WP_Error('gallop_test_option', 'Not an option the tests may set.', ['status' => 400]);
@@ -109,6 +111,63 @@ add_action('rest_api_init', static function (): void {
                 'content' => $comment->comment_content,
             ];
         },
+    ]);
+
+    // A user as WordPress stores them, with what the plugin recorded about them.
+    $user = static function (?WP_User $user) {
+        if (!$user instanceof WP_User) {
+            return null;
+        }
+        $meta = static fn (string $key) => get_user_meta($user->ID, $key, true);
+
+        return [
+            'id' => $user->ID,
+            'login' => $user->user_login,
+            'email' => $user->user_email,
+            'nicename' => $user->user_nicename,
+            'displayName' => $user->display_name,
+            'firstName' => (string) $user->first_name,
+            'lastName' => (string) $user->last_name,
+            'roles' => array_values($user->roles),
+            'hasPassword' => $user->user_pass !== '',
+            'meta' => [
+                'verified' => $meta('gallop_verified'),
+                'subscribed' => $meta('gallop_subscribed'),
+                'replyEmails' => $meta('gallop_reply_emails'),
+                'sessionVersion' => $meta('gallop_session_version'),
+            ],
+        ];
+    };
+
+    register_rest_route('gallop-test/v1', '/user/(?P<id>\d+)', $open + [
+        'methods' => 'GET',
+        'callback' => static fn (WP_REST_Request $request) => $user(get_user_by('id', (int) $request['id']) ?: null),
+    ]);
+
+    register_rest_route('gallop-test/v1', '/user-by-email', $open + [
+        'methods' => 'GET',
+        'callback' => static fn (WP_REST_Request $request) => $user(get_user_by('email', (string) $request->get_param('email')) ?: null),
+    ]);
+
+    // A user made some other way, before the plugin: role and password only.
+    register_rest_route('gallop-test/v1', '/user', $open + [
+        'methods' => 'POST',
+        'callback' => static function (WP_REST_Request $request) use ($user) {
+            $id = wp_insert_user([
+                'user_login' => (string) $request->get_param('login'),
+                'user_email' => (string) $request->get_param('email'),
+                'user_pass' => (string) $request->get_param('password'),
+                'role' => (string) ($request->get_param('role') ?: 'subscriber'),
+                'display_name' => (string) ($request->get_param('displayName') ?: $request->get_param('login')),
+            ]);
+
+            return $id instanceof WP_Error ? $id : $user(get_user_by('id', $id) ?: null);
+        },
+    ]);
+
+    register_rest_route('gallop-test/v1', '/approve/(?P<id>\d+)', $open + [
+        'methods' => 'POST',
+        'callback' => static fn (WP_REST_Request $request) => ['approved' => wp_set_comment_status((int) $request['id'], 'approve')],
     ]);
 
     register_rest_route('gallop-test/v1', '/mail', [
