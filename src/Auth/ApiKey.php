@@ -43,6 +43,7 @@ final class ApiKey
 
     public const CAP_COMMENTS = 'comments';
     public const CAP_MEMBERS = 'members';
+    public const CAP_MAILING = 'mailing';
 
     private const SECRET_LENGTH = 43;
     private const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -86,6 +87,7 @@ final class ApiKey
         $capabilities = [
             self::CAP_COMMENTS => __('Submit comments', 'gallop'),
             self::CAP_MEMBERS => __('Manage members (log in, sign up, profiles)', 'gallop'),
+            self::CAP_MAILING => __('Send mailings (list every user with their email address, unsubscribe them)', 'gallop'),
         ];
 
         /**

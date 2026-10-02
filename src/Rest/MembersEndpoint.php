@@ -25,7 +25,8 @@ use WP_User;
  *
  * Every route needs the site's API key with the "Manage members" permission,
  * because every one acts on a person's behalf and the request comes from the front
- * end's own server. The front end keeps its own session for the member; WordPress
+ * end's own server. The two a front end sends mailings with, the list of users
+ * and unsubscribing one, need "Send mailings" instead. The front end keeps its own session for the member; WordPress
  * is only asked when the member logs in or changes something.
  *
  * Nothing here sets WordPress cookies. Login is wp_authenticate(), the check
@@ -42,6 +43,10 @@ final class MembersEndpoint
 
     private const LOGIN_MAX = 254;
     private const PASSWORD_MAX = 4096;
+
+    /** Users in one page of the list. */
+    private const LIST_DEFAULT = 100;
+    private const LIST_MAX = 200;
 
     public function register(): void
     {
@@ -85,16 +90,55 @@ final class MembersEndpoint
             ],
         ]);
 
+        // Listing every user hands out every email address, so it is a permission
+        // of its own, and one a key does not hold until its owner says so.
+        $mailing = ApiKey::requires(ApiKey::CAP_MAILING);
+
         register_rest_route(self::NAMESPACE, '/members', [
+            [
+                'methods' => WP_REST_Server::CREATABLE,
+                'callback' => [$this, 'signUp'],
+                'permission_callback' => $keyed,
+                'args' => [
+                    'email' => $string(self::LOGIN_MAX),
+                    'firstName' => $string(Member::NAME_MAX * 4),
+                    'lastName' => $string(Member::NAME_MAX * 4),
+                    'subscribe' => $bool + ['default' => true],
+                    'ip' => $string(45),
+                ],
+            ],
+            [
+                'methods' => WP_REST_Server::READABLE,
+                'callback' => [$this, 'index'],
+                'permission_callback' => $mailing,
+                'args' => [
+                    'page' => [
+                        'required' => false,
+                        'default' => 1,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn ($value): bool => is_numeric($value) && (int) $value > 0,
+                    ],
+                    'per_page' => [
+                        'required' => false,
+                        'default' => self::LIST_DEFAULT,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn ($value): bool => is_numeric($value)
+                            && (int) $value > 0
+                            && (int) $value <= self::LIST_MAX,
+                    ],
+                    'search' => $string(self::LOGIN_MAX),
+                    'role' => $string(64),
+                ],
+            ],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/members/(?P<id>\d+)/subscription', [
             'methods' => WP_REST_Server::CREATABLE,
-            'callback' => [$this, 'signUp'],
-            'permission_callback' => $keyed,
+            'callback' => [$this, 'unsubscribe'],
+            'permission_callback' => $mailing,
             'args' => [
-                'email' => $string(self::LOGIN_MAX),
-                'firstName' => $string(Member::NAME_MAX * 4),
-                'lastName' => $string(Member::NAME_MAX * 4),
-                'subscribe' => $bool + ['default' => true],
-                'ip' => $string(45),
+                'id' => $id,
+                'subscribed' => $bool + ['required' => true],
             ],
         ]);
 
@@ -330,10 +374,13 @@ final class MembersEndpoint
              */
             do_action('gallop_member_verified', $existing);
 
+            // The address is the one the link was sent to. A front end that keeps
+            // its own note of who unsubscribed needs it to lift that note.
             return new WP_REST_Response([
                 'loggedIn' => false,
                 'existing' => true,
                 'subscribed' => Member::isSubscribed($existing),
+                'email' => $existing->user_email,
             ], 200);
         }
 
@@ -588,6 +635,92 @@ final class MembersEndpoint
         do_action('gallop_member_updated', $user, $request);
 
         return new WP_REST_Response(['member' => Member::payload($user, true)], 200);
+    }
+
+    // --- Mailings ---
+
+    /**
+     * One page of the site's users, for a front end that sends them email: who
+     * they are, their address, their roles, and whether they asked for email.
+     */
+    public function index(WP_REST_Request $request): WP_REST_Response
+    {
+        $this->begin($request);
+
+        $perPage = (int) $request->get_param('per_page');
+        $args = [
+            'number' => $perPage,
+            'paged' => (int) $request->get_param('page'),
+            'orderby' => 'ID',
+            'order' => 'ASC',
+            'count_total' => true,
+        ];
+
+        $search = trim((string) $request->get_param('search'));
+        if ($search !== '') {
+            $args['search'] = '*' . $search . '*';
+            $args['search_columns'] = ['user_login', 'user_email', 'display_name'];
+        }
+
+        $role = sanitize_key((string) $request->get_param('role'));
+        if ($role !== '') {
+            $args['role'] = $role;
+        }
+
+        $query = new \WP_User_Query($args);
+        $total = (int) $query->get_total();
+
+        $members = [];
+        foreach ($query->get_results() as $user) {
+            if ($user instanceof WP_User) {
+                $members[] = Member::listing($user);
+            }
+        }
+
+        return new WP_REST_Response([
+            'total' => $total,
+            'pages' => (int) ceil($total / $perPage),
+            'members' => $members,
+        ], 200);
+    }
+
+    /**
+     * The link in a mailing was used: the user no longer wants email. There is
+     * no session to check, since the reader came from their inbox, so this only
+     * ever turns email off. Turning it on again is the member's own to do, logged
+     * in, or by confirming their address.
+     */
+    public function unsubscribe(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $this->begin($request);
+
+        if ($request->get_param('subscribed')) {
+            return new WP_Error(
+                'gallop_member_subscribe_refused',
+                __('A member can only be unsubscribed here.', 'gallop'),
+                ['status' => 400]
+            );
+        }
+
+        $user = get_user_by('id', (int) $request->get_param('id'));
+        if (!$user instanceof WP_User) {
+            return new WP_Error(
+                'gallop_member_not_found',
+                __('There is no such member.', 'gallop'),
+                ['status' => 404]
+            );
+        }
+
+        update_user_meta($user->ID, Member::META_SUBSCRIBED, '0');
+
+        /**
+         * Fires after a member was unsubscribed through a link in a mailing.
+         *
+         * @param WP_User $user The member.
+         */
+        do_action('gallop_member_unsubscribed', $user);
+
+        return new WP_REST_Response(['id' => $user->ID, 'subscribed' => false], 200);
     }
 
     // --- Helpers ---

@@ -73,6 +73,30 @@ final class Member
     }
 
     /**
+     * The user as one row of the list a front end sends mailings from. Always
+     * with the email address: the list is only given to a key allowed to send.
+     *
+     * @return array<string, mixed>
+     */
+    public static function listing(WP_User $user): array
+    {
+        return [
+            'id' => $user->ID,
+            'displayName' => $user->display_name,
+            'firstName' => (string) $user->first_name,
+            'lastName' => (string) $user->last_name,
+            'email' => $user->user_email,
+            'roles' => array_values(array_filter((array) $user->roles, 'is_string')),
+            'subscribed' => self::isSubscribed($user),
+            // They said no themselves, which is not the same as never having
+            // been asked: an editor who never chose is not subscribed either.
+            'optedOut' => get_user_meta($user->ID, self::META_SUBSCRIBED, true) === '0',
+            'verified' => self::isVerified($user),
+            'registered' => (string) mysql_to_rfc3339($user->user_registered),
+        ];
+    }
+
+    /**
      * The user, if the session a front end holds for them is still current.
      *
      * One answer for a user that does not exist and a version that is out of date:

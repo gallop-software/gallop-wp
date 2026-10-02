@@ -337,7 +337,7 @@ async function main() {
     const adminUser = (await get(`${TEST}/user/${seed.author}`)).json
 
     const routes = Object.keys((await get(`${API}/gallop/v1`)).json.routes)
-    check('the members routes are registered', ['/gallop/v1/members', '/gallop/v1/members/login', '/gallop/v1/members/confirm', '/gallop/v1/members/reset-request', '/gallop/v1/members/reset', '/gallop/v1/members/(?P<id>\\d+)'].every((r) => routes.includes(r)), routes.filter((r) => r.includes('members')))
+    check('the members routes are registered', ['/gallop/v1/members', '/gallop/v1/members/login', '/gallop/v1/members/confirm', '/gallop/v1/members/reset-request', '/gallop/v1/members/reset', '/gallop/v1/members/(?P<id>\\d+)', '/gallop/v1/members/(?P<id>\\d+)/subscription'].every((r) => routes.includes(r)), routes.filter((r) => r.includes('members')))
 
     const noPerm = await m('POST', '/login', { login: 'admin', password: 'password', ...visitor })
     check('without the Manage members permission: 403 gallop_key_forbidden', noPerm.status === 403 && noPerm.json.code === 'gallop_key_forbidden', noPerm.json)
@@ -462,7 +462,7 @@ async function main() {
     await m('POST', '', { email: 'suzanne.new@example.com', subscribe: true, ...visitor })
     const subscribeLink = linkParams((await mail())[0].message)
     const subscribed = await m('POST', '/confirm', subscribeLink)
-    check('an existing account that asked to subscribe is subscribed on confirmation, still not logged in', subscribed.status === 200 && subscribed.json.loggedIn === false && subscribed.json.subscribed === true && (await m('GET', `/${member.id}?sessionVersion=${session}`)).json.member.subscribed === true, subscribed.json)
+    check('an existing account that asked to subscribe is subscribed on confirmation, still not logged in', subscribed.status === 200 && subscribed.json.loggedIn === false && subscribed.json.subscribed === true && subscribed.json.email === 'suzanne.new@example.com' && (await m('GET', `/${member.id}?sessionVersion=${session}`)).json.member.subscribed === true, subscribed.json)
 
     console.log('  existing subscribers')
     const legacy = (await post(`${TEST}/user`, { login: 'oldtimer', email: 'oldtimer@example.com', password: 'oldtimer-pass', role: 'subscriber' })).json
@@ -472,6 +472,32 @@ async function main() {
     check('an account with another role is not', (await m('GET', `/${editor.id}?sessionVersion=1`)).json.member.subscribed === false)
     await m('PATCH', `/${legacy.id}`, { sessionVersion: 1, subscribed: false })
     check('their own choice wins over the role', (await m('GET', `/${legacy.id}?sessionVersion=1`)).json.member.subscribed === false)
+
+    console.log('  mailings')
+    const noMailing = await m('GET', '')
+    check('without the Send mailings permission the list is refused: 403 gallop_key_forbidden', noMailing.status === 403 && noMailing.json.code === 'gallop_key_forbidden', noMailing.json)
+    const noMailingOff = await m('POST', `/${editor.id}/subscription`, { subscribed: false })
+    check('and so is unsubscribing', noMailingOff.status === 403 && noMailingOff.json.code === 'gallop_key_forbidden', noMailingOff.json)
+    check('signing up needs no more than it did', (await m('POST', '', { email: 'still.fine@example.com', subscribe: true, ...visitor })).status === 202)
+    await option('gallop_api_key_permissions', { default: ['comments', 'members', 'mailing'] })
+    const listed = await m('GET', '?per_page=200')
+    const row = (id) => listed.json.members?.find((u) => u.id === id)
+    check('the list has every user, with the totals', listed.status === 200 && listed.json.total === listed.json.members.length && listed.json.pages === 1 && Boolean(row(seed.author)) && Boolean(row(editor.id)), listed.json)
+    check('a row has exactly the documented fields', Object.keys(row(editor.id) ?? {}).sort().join() === 'displayName,email,firstName,id,lastName,optedOut,registered,roles,subscribed,verified', row(editor.id))
+    check('with the address, the roles and the choice', row(editor.id)?.email === 'editor@example.com' && row(editor.id)?.roles.join() === 'editor' && row(editor.id)?.subscribed === false && row(editor.id)?.optedOut === false && row(legacy.id)?.subscribed === false && row(legacy.id)?.optedOut === true && row(member.id)?.subscribed === true, [row(editor.id), row(legacy.id), row(member.id)])
+    const paged = await m('GET', '?per_page=1&page=2')
+    check('it is paged', paged.status === 200 && paged.json.members.length === 1 && paged.json.pages === listed.json.total && paged.json.members[0].id === listed.json.members[1].id, paged.json)
+    const byRole = await m('GET', '?role=editor')
+    check('and filtered by role and by search', byRole.json.members.length === 1 && byRole.json.members[0].id === editor.id && (await m('GET', '?search=oldtimer')).json.members.map((u) => u.id).join() === String(legacy.id), byRole.json)
+    check('more than 200 a page is refused', (await m('GET', '?per_page=201')).status === 400)
+    const off = await m('POST', `/${member.id}/subscription`, { subscribed: false })
+    check('a member is unsubscribed without a session', off.status === 200 && off.json.subscribed === false && (await m('GET', `/${member.id}?sessionVersion=${session}`)).json.member.subscribed === false, off.json)
+    const on = await m('POST', `/${member.id}/subscription`, { subscribed: true })
+    check('but never subscribed that way: 400 gallop_member_subscribe_refused', on.status === 400 && on.json.code === 'gallop_member_subscribe_refused', on.json)
+    const nobody = await m('POST', '/999999/subscription', { subscribed: false })
+    check('an unknown user: 404 gallop_member_not_found', nobody.status === 404 && nobody.json.code === 'gallop_member_not_found', nobody.json)
+    await m('PATCH', `/${member.id}`, { sessionVersion: session, subscribed: true })
+    await fresh()
 
     console.log('  comments as a member')
     const asMember = await post(COMMENTS, { post: posts.open, ...comment({ user: member.id, sessionVersion: session, authorName: 'Ignored', authorEmail: 'ignored@example.com', authorUrl: 'https://ignored.example' }) }, keyed(key))
