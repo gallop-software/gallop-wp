@@ -3,7 +3,7 @@
  * Plugin Name: Gallop
  * Plugin URI:  https://gallop.software/headless-wordpress
  * Description: A purpose-built REST API for Next.js websites — fetch a page's post, SEO, and site data in one request, with comments and member accounts that stay in WordPress.
- * Version:     1.3.0
+ * Version:     1.3.1
  * Author:      Gallop Software
  * Author URI:  https://gallop.software
  * License:     GPLv2 or later

@@ -4,7 +4,7 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,7 +78,6 @@ All endpoints live under the `gallop/v1` namespace.
 * `GET  /gallop/v1/comments` — The approved comments on a `post`, oldest first, as a flat list with `parent` ids. Public.
 * `POST /gallop/v1/comments` — Submit a visitor's or a member's comment. Requires the API key.
 * `POST /gallop/v1/members/login`, `POST /gallop/v1/members`, `POST /gallop/v1/members/confirm`, `POST /gallop/v1/members/reset-request`, `POST /gallop/v1/members/reset`, `GET|PATCH /gallop/v1/members/{id}` — Members: log in, sign up, confirm an address, reset a password, read and edit a profile. All require the API key.
-* `GET /gallop/v1/members`, `POST /gallop/v1/members/{id}/subscription` — For a front end that sends mailings: every user with their email address, roles and whether they asked for email, a page at a time, and unsubscribing one from a link in a mailing. Both require the API key with the **Send mailings** permission.
 * `POST /gallop/v1/auth/login`, `POST /gallop/v1/auth/logout`, `GET /gallop/v1/auth/session` — The older cookie-based login, kept for front ends on the same registered domain that use it.
 
 = Members =
@@ -273,13 +272,12 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Changelog ==
 
+= 1.3.1 =
+* Removes what 1.3.0 added: `GET /gallop/v1/members`, `POST /gallop/v1/members/{id}/subscription`, the "Send mailings" permission, and the `email` field in the confirm response. A front end that sends mailings keeps its own list of subscribers.
+* Everything else is as in 1.2.0.
+
 = 1.3.0 =
-* Added `GET /gallop/v1/members`: a page of the site's users (`page`, `per_page` up to 200, `search`, `role`), each with `id`, `displayName`, `firstName`, `lastName`, `email`, `roles`, `subscribed`, `optedOut` (they said no themselves), `verified` and `registered`, with `total` and `pages`.
-* Added `POST /gallop/v1/members/{id}/subscription` with `subscribed: false`, to unsubscribe a member from a link in a mailing, where there is no session. It never subscribes anyone.
-* Both need the API key with the new "Send mailings" permission, which starts off, also for keys that already hold "Manage members".
-* `POST /gallop/v1/members/confirm` returns the `email` that was confirmed when the account already existed.
-* New action: `gallop_member_unsubscribed`.
-* Existing endpoints and their responses are unchanged.
+* Added a list of users and an unsubscribe route for front ends that send mailings. Withdrawn in 1.3.1.
 
 = 1.2.0 =
 * Added members: `POST /gallop/v1/members/login`, `POST /gallop/v1/members` (sign up), `/members/confirm`, `/members/reset-request`, `/members/reset`, and `GET|PATCH /members/{id}`. A front end's server can let readers log in with `wp_authenticate()`, sign up with email confirmation, reset a password with WordPress's own keys, and edit a profile, with no WordPress cookies involved. All need the API key with the new "Manage members" permission, which starts off.
@@ -321,8 +319,8 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Upgrade Notice ==
 
-= 1.3.0 =
-Adds a list of users and an unsubscribe route for front ends that send mailings. Nothing changes for existing requests, and the new permission starts switched off.
+= 1.3.1 =
+Removes the mailing routes added in 1.3.0. Nothing else changes.
 
 = 1.2.0 =
 Adds member accounts for front ends: login, sign-up with email confirmation, password reset, and profiles. Nothing changes for existing requests, and the new permission starts switched off.
