@@ -90,7 +90,8 @@ final class AuthEndpoint
 
         $user = wp_signon([
             'user_login' => $username,
-            'user_password' => $password,
+            // Slashed, as wp-login.php passes it: WordPress stores a password that way.
+            'user_password' => wp_slash($password),
             'remember' => $remember,
         ], is_ssl());
 

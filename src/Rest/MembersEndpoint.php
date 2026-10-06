@@ -191,7 +191,7 @@ final class MembersEndpoint
             $this->cleanUserAgent((string) $request->get_param('userAgent')),
             '',
             0,
-            static fn () => wp_authenticate($login, $password)
+            static fn () => self::authenticate($login, $password)
         );
 
         if (!$result instanceof WP_User) {
@@ -432,7 +432,9 @@ final class MembersEndpoint
         // wp_set_password() also clears the reset key, so the link works once.
         // reset_password() is not used: it emails the site's administrator about
         // every member's reset.
-        wp_set_password($password, $user->ID);
+        // Slashed, as wp-login.php stores one, so it also works on WordPress's own
+        // login screen.
+        wp_set_password(wp_slash($password), $user->ID);
 
         // Opening the link proved the address belongs to them.
         update_user_meta($user->ID, Member::META_VERIFIED, '1');
@@ -518,7 +520,8 @@ final class MembersEndpoint
             if ($weak !== null) {
                 return $weak;
             }
-            $fields['user_pass'] = $newPassword;
+            // Slashed, as WordPress's profile screen stores one.
+            $fields['user_pass'] = wp_slash($newPassword);
             $passwordChanged = true;
         }
 
@@ -526,7 +529,7 @@ final class MembersEndpoint
         // session left open on a shared computer cannot be turned into a takeover.
         if ($emailChanged || $passwordChanged) {
             $current = (string) $request->get_param('currentPassword');
-            if ($current === '' || !wp_check_password($current, $user->user_pass, $user->ID)) {
+            if ($current === '' || !self::passwordMatches($current, $user)) {
                 return new WP_Error(
                     'gallop_member_wrong_password',
                     __('Your current password is not right.', 'gallop'),
@@ -630,6 +633,32 @@ final class MembersEndpoint
             __('Set the Next.js Production URL under Gallop → Settings before members can sign up.', 'gallop'),
             ['status' => 500]
         );
+    }
+
+    /**
+     * WordPress checks a password with slashes added, which is how its own login
+     * screen receives one, so a password with a quote or a backslash only matches
+     * that way. One set through this endpoint before it did the same was stored as
+     * typed, and is tried second.
+     */
+    private static function authenticate(string $login, string $password): WP_User|WP_Error
+    {
+        $slashed = wp_slash($password);
+        $result = wp_authenticate($login, $slashed);
+        if ($result instanceof WP_User || $slashed === $password) {
+            return $result;
+        }
+
+        return wp_authenticate($login, $password);
+    }
+
+    /** Whether this is the member's password, stored either way. See authenticate(). */
+    private static function passwordMatches(string $password, WP_User $user): bool
+    {
+        $slashed = wp_slash($password);
+
+        return wp_check_password($slashed, $user->user_pass, $user->ID)
+            || ($slashed !== $password && wp_check_password($password, $user->user_pass, $user->ID));
     }
 
     private function invalidCredentials(): WP_Error

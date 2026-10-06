@@ -4,7 +4,7 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -272,6 +272,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Changelog ==
 
+= 1.3.2 =
+* Fixed: a password containing a quote, a double quote or a backslash, set in WordPress, was refused by `/gallop/v1/members/login` and `/gallop/v1/auth/login`. Passwords are now checked and stored the way WordPress's own login screen does it. A password already set through the reset or profile routes keeps working.
+
 = 1.3.1 =
 * Removes what 1.3.0 added: `GET /gallop/v1/members`, `POST /gallop/v1/members/{id}/subscription`, the "Send mailings" permission, and the `email` field in the confirm response. A front end that sends mailings keeps its own list of subscribers.
 * Everything else is as in 1.2.0.
@@ -318,6 +321,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Optional Next.js production URL redirect for public front-end requests.
 
 == Upgrade Notice ==
+
+= 1.3.2 =
+Fixes logging in with a password that contains a quote or a backslash.
 
 = 1.3.1 =
 Removes the mailing routes added in 1.3.0. Nothing else changes.
