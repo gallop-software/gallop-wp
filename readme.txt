@@ -4,7 +4,7 @@ Tags: headless, rest-api, nextjs, decoupled, authentication
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.2
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -77,7 +77,7 @@ All endpoints live under the `gallop/v1` namespace.
 * `POST /gallop/v1/category` — Resolve a category URI to a term and return `category`, `seo`, and `site` payloads.
 * `GET  /gallop/v1/comments` — The approved comments on a `post`, oldest first, as a flat list with `parent` ids. Public.
 * `POST /gallop/v1/comments` — Submit a visitor's or a member's comment. Requires the API key.
-* `POST /gallop/v1/members/login`, `POST /gallop/v1/members`, `POST /gallop/v1/members/confirm`, `POST /gallop/v1/members/reset-request`, `POST /gallop/v1/members/reset`, `GET|PATCH /gallop/v1/members/{id}` — Members: log in, sign up, confirm an address, reset a password, read and edit a profile. All require the API key.
+* `POST /gallop/v1/members/login`, `POST /gallop/v1/members`, `POST /gallop/v1/members/confirm`, `POST /gallop/v1/members/create`, `POST /gallop/v1/members/reset-request`, `POST /gallop/v1/members/reset`, `GET|PATCH /gallop/v1/members/{id}` — Members: log in, sign up, confirm an address, create an account the front end confirmed, reset a password, read and edit a profile. All require the API key.
 * `POST /gallop/v1/auth/login`, `POST /gallop/v1/auth/logout`, `GET /gallop/v1/auth/session` — The older cookie-based login, kept for front ends on the same registered domain that use it.
 
 = Members =
@@ -193,6 +193,10 @@ The front end's server sends the login name, password, and the visitor's address
 
 Nothing is written to the users table. Gallop keeps the address and names for up to 48 hours and emails a confirmation link to the front end. When the link is opened the front end calls `/gallop/v1/members/confirm`, and only then is a user created, with the Subscriber role. If the address already had an account, it is marked verified (and subscribed, if that was asked) and the person is told to log in; the link never logs anyone into an existing account. WordPress's "Anyone can register" setting is not consulted: the Manage members permission is the switch.
 
+= Can the front end send the confirmation email itself? =
+
+Yes. A front end that confirms the address its own way skips the two routes above and calls `POST /gallop/v1/members/create` with `email`, `password`, and optionally `firstName`, `lastName` and `subscribe`, once the address is confirmed. Gallop creates the user at once, with the Subscriber role, marked verified, with that password, and answers 201 with the member. It sends no email and keeps nothing waiting. An address that already has an account is answered 409 `gallop_member_exists` and left as it is. Gallop takes the front end's word that the address was confirmed: only call this after it was.
+
 = What emails does Gallop send? =
 
 Four, all through `wp_mail()` and all to the member: a confirmation link, a note that an address already has an account, a password reset link, and, if the member asked for it, a message when someone replies to their comment. Every link points at your Next.js production URL. The `gallop_member_email` filter can change or suppress any of them.
@@ -272,6 +276,10 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 
 == Changelog ==
 
+= 1.4.0 =
+* Added `POST /gallop/v1/members/create`, for a front end that sends the confirmation email itself: it creates a verified member with the password they chose, and sends no email. Needs the API key with the Manage members permission. An address that already has an account is answered 409 `gallop_member_exists`.
+* Sign-up through `POST /gallop/v1/members` and `/members/confirm` works as before.
+
 = 1.3.2 =
 * Fixed: a password containing a quote, a double quote or a backslash, set in WordPress, was refused by `/gallop/v1/members/login` and `/gallop/v1/auth/login`. Passwords are now checked and stored the way WordPress's own login screen does it. A password already set through the reset or profile routes keeps working.
 
@@ -321,6 +329,9 @@ No personal data is shared with third parties. No tracking, analytics, or teleme
 * Optional Next.js production URL redirect for public front-end requests.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Adds a route for front ends that confirm a new member's address themselves. Nothing else changes.
 
 = 1.3.2 =
 Fixes logging in with a password that contains a quote or a backslash.

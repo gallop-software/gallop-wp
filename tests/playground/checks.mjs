@@ -337,7 +337,7 @@ async function main() {
     const adminUser = (await get(`${TEST}/user/${seed.author}`)).json
 
     const routes = Object.keys((await get(`${API}/gallop/v1`)).json.routes)
-    check('the members routes are registered', ['/gallop/v1/members', '/gallop/v1/members/login', '/gallop/v1/members/confirm', '/gallop/v1/members/reset-request', '/gallop/v1/members/reset', '/gallop/v1/members/(?P<id>\\d+)'].every((r) => routes.includes(r)), routes.filter((r) => r.includes('members')))
+    check('the members routes are registered', ['/gallop/v1/members', '/gallop/v1/members/login', '/gallop/v1/members/confirm', '/gallop/v1/members/create', '/gallop/v1/members/reset-request', '/gallop/v1/members/reset', '/gallop/v1/members/(?P<id>\\d+)'].every((r) => routes.includes(r)), routes.filter((r) => r.includes('members')))
 
     const noPerm = await m('POST', '/login', { login: 'admin', password: 'password', ...visitor })
     check('without the Manage members permission: 403 gallop_key_forbidden', noPerm.status === 403 && noPerm.json.code === 'gallop_key_forbidden', noPerm.json)
@@ -463,6 +463,30 @@ async function main() {
     const subscribeLink = linkParams((await mail())[0].message)
     const subscribed = await m('POST', '/confirm', subscribeLink)
     check('an existing account that asked to subscribe is subscribed on confirmation, still not logged in', subscribed.status === 200 && subscribed.json.loggedIn === false && subscribed.json.subscribed === true && (await m('GET', `/${member.id}?sessionVersion=${session}`)).json.member.subscribed === true, subscribed.json)
+
+    console.log('  creating an account the front end confirmed')
+    await fresh()
+    await option('gallop_nextjs_production_url', '')
+    const made = await m('POST', '/create', { email: 'Carla.Confirmed@example.com', firstName: ' Carla ', lastName: 'Confirmed', password: `it's "quoted" \\ here` })
+    const madeMember = made.json?.member
+    check('a confirmed address becomes a member at once: 201, with no front-end address set', made.status === 201 && madeMember?.email === 'carla.confirmed@example.com' && madeMember.displayName === 'Carla Confirmed' && madeMember.verified === true && madeMember.subscribed === false && madeMember.replyEmails === true && madeMember.isAdmin === false && madeMember.sessionVersion === 1, made.json)
+    check('the answer is the member and nothing else: no password key', Object.keys(made.json ?? {}).join() === 'member', Object.keys(made.json ?? {}))
+    await option('gallop_nextjs_production_url', 'https://front-end.example')
+    const madeStored = await userByEmail('carla.confirmed@example.com')
+    check('as a WordPress subscriber, username from the address, random nicename', madeStored.roles.join() === 'subscriber' && madeStored.login === 'carla.confirmed' && /^member-[a-z0-9]{12}$/.test(madeStored.nicename) && madeStored.meta.verified === '1' && madeStored.meta.subscribed === '0', madeStored)
+    check('nothing was emailed, and nothing is kept waiting', (await mail()).length === 0 && !/_transient_gallop_pending_/.test(JSON.stringify(await state())), await mail())
+    const madeLogin = await m('POST', '/login', { login: 'carla.confirmed@example.com', password: `it's "quoted" \\ here`, ...visitor })
+    check('the member logs in with the password sent, quotes and backslash and all', madeLogin.status === 200 && madeLogin.json.member.id === madeMember.id, madeLogin.json)
+    const madeTwice = await m('POST', '/create', { email: 'carla.confirmed@example.com', password: 'a different password' })
+    check('a second time: 409 gallop_member_exists, and the password is not changed', madeTwice.status === 409 && madeTwice.json.code === 'gallop_member_exists' && (await m('POST', '/login', { login: 'carla.confirmed', password: 'a different password', ...visitor })).status === 401, madeTwice.json)
+    check('an address an administrator has: 409 too', (await m('POST', '/create', { email: adminUser.email, password: 'a different password' })).status === 409)
+    const madeWeak = await m('POST', '/create', { email: 'short@example.com', password: 'short' })
+    check('a short password: 400 gallop_member_weak_password, and no user', madeWeak.status === 400 && madeWeak.json.code === 'gallop_member_weak_password' && (await userByEmail('short@example.com')) === null, madeWeak.json)
+    const madeBad = await m('POST', '/create', { email: 'not-an-email', password: 'long enough password' })
+    check('a bad address: 400 gallop_member_invalid_email', madeBad.status === 400 && madeBad.json.code === 'gallop_member_invalid_email', madeBad.json)
+    const madeNameless = await m('POST', '/create', { email: 'nameless@example.com', password: 'long enough password', subscribe: true })
+    check('no names: the display name is the address before the @', madeNameless.status === 201 && madeNameless.json.member.displayName === 'nameless' && madeNameless.json.member.subscribed === true, madeNameless.json)
+    check('without the key: 401', (await call('POST', `${MEMBERS}/create`, { body: { email: 'nokey@example.com', password: 'long enough password' } })).status === 401)
 
     console.log('  existing subscribers')
     const legacy = (await post(`${TEST}/user`, { login: 'oldtimer', email: 'oldtimer@example.com', password: 'oldtimer-pass', role: 'subscriber' })).json

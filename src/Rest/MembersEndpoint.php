@@ -98,6 +98,19 @@ final class MembersEndpoint
             ],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/members/create', [
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'create'],
+            'permission_callback' => $keyed,
+            'args' => [
+                'email' => $string(self::LOGIN_MAX),
+                'firstName' => $string(Member::NAME_MAX * 4),
+                'lastName' => $string(Member::NAME_MAX * 4),
+                'password' => $string(self::PASSWORD_MAX),
+                'subscribe' => $bool + ['default' => false],
+            ],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/members/confirm', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'confirm'],
@@ -368,6 +381,59 @@ final class MembersEndpoint
             'subscribed' => $subscribe,
             'member' => Member::payload($user, true),
             'passwordKey' => is_string($passwordKey) ? $passwordKey : null,
+        ], 201);
+    }
+
+    /**
+     * Creates a member whose address the front end confirmed itself, with the
+     * password they chose there. Nothing is emailed and nothing is kept waiting:
+     * the front end sent the link, and calls this only once it was opened.
+     *
+     * The key is what says the address was confirmed. A front end that calls this
+     * without having checked is making accounts for addresses nobody proved.
+     */
+    public function create(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $this->begin($request);
+
+        $email = strtolower(sanitize_email((string) $request->get_param('email')));
+        if ($email === '' || !is_email($email)) {
+            return new WP_Error(
+                'gallop_member_invalid_email',
+                __('Please enter a valid email address.', 'gallop'),
+                ['status' => 400]
+            );
+        }
+
+        $password = (string) $request->get_param('password');
+        $weak = Member::checkPassword($password);
+        if ($weak !== null) {
+            return $weak;
+        }
+
+        if (email_exists($email) !== false) {
+            return $this->memberExists();
+        }
+
+        $user = $this->createSubscriber(
+            $email,
+            Member::cleanName($request->get_param('firstName')),
+            Member::cleanName($request->get_param('lastName')),
+            (bool) $request->get_param('subscribe'),
+            $password
+        );
+        if ($user instanceof WP_Error) {
+            return $user;
+        }
+
+        /** This action is documented in confirm(). */
+        do_action('gallop_member_verified', $user);
+
+        /** This action is documented in confirm(). */
+        do_action('gallop_member_registered', $user, $request);
+
+        return new WP_REST_Response([
+            'member' => Member::payload($user, true),
         ], 201);
     }
 
@@ -679,6 +745,15 @@ final class MembersEndpoint
         );
     }
 
+    private function memberExists(): WP_Error
+    {
+        return new WP_Error(
+            'gallop_member_exists',
+            __('That email address already has an account.', 'gallop'),
+            ['status' => 409]
+        );
+    }
+
     private function cleanUserAgent(string $userAgent): string
     {
         return substr(sanitize_text_field($userAgent), 0, 254);
@@ -690,8 +765,12 @@ final class MembersEndpoint
      * The username comes from the address, since the member typed no other, made
      * unique if it is taken. The nicename, which WordPress puts in author URLs, is
      * random so the address is not published through it.
+     *
+     * Without a password the member gets a random one nobody knows, and chooses
+     * their own with a reset key. With one, it is stored with slashes added, as
+     * reset() and update() store theirs. See authenticate().
      */
-    private function createSubscriber(string $email, string $firstName, string $lastName, bool $subscribe): WP_User|WP_Error
+    private function createSubscriber(string $email, string $firstName, string $lastName, bool $subscribe, ?string $password = null): WP_User|WP_Error
     {
         $displayName = trim($firstName . ' ' . $lastName);
         $local = (string) strstr($email, '@', true);
@@ -701,7 +780,7 @@ final class MembersEndpoint
 
         $id = wp_insert_user([
             'user_login' => $this->uniqueLogin($local),
-            'user_pass' => wp_generate_password(32, true, true),
+            'user_pass' => $password !== null ? wp_slash($password) : wp_generate_password(32, true, true),
             'user_email' => $email,
             'user_nicename' => 'member-' . strtolower(wp_generate_password(12, false)),
             'display_name' => $displayName,
@@ -711,6 +790,11 @@ final class MembersEndpoint
         ]);
 
         if ($id instanceof WP_Error) {
+            // Two requests for one address at once: the second finds it taken.
+            if ($id->get_error_code() === 'existing_user_email') {
+                return $this->memberExists();
+            }
+
             return new WP_Error(
                 'gallop_member_create_failed',
                 __('The account could not be created.', 'gallop'),
