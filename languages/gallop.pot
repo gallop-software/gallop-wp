@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv2 or later license.
 msgid ""
 msgstr ""
-"Project-Id-Version: Gallop 1.2.0\n"
+"Project-Id-Version: Gallop 1.4.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/gallop\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -501,6 +501,10 @@ msgstr ""
 
 #: src/Rest/MembersEndpoint.php:642
 msgid "This link has expired or was already used. Please ask for a new one."
+msgstr ""
+
+#: src/Rest/MembersEndpoint.php:752
+msgid "That email address already has an account."
 msgstr ""
 
 #: src/Rest/MembersEndpoint.php:664
