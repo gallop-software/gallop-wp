@@ -18,6 +18,8 @@ Gallop is the headless WordPress REST API for Next.js that's FAST and SIMPLE. Ke
 
 [Visit the Gallop homepage &amp; documentation →](https://gallop.software/headless-wordpress)
 
+https://www.youtube.com/watch?v=G-xBcAS8ux4
+
 Most headless setups make you stitch together a waterfall of core WordPress REST calls per page — `/wp/v2/posts`, `/wp/v2/media`, meta, and taxonomy — then bolt on a JWT layer and an auth service just to log a user in. Gallop replaces all of that.
 
 **One request. The whole page.** Hand Gallop a URI and it returns the post body, an SEO block, and your global site data — already joined, already resolved, ready to render. **The API is the point:** a dedicated, Next.js-shaped REST namespace (`/wp-json/gallop/v1`) so your front-end code stays simple — one fetch, one response, ready to render.
@@ -90,6 +92,8 @@ Readers get accounts, and WordPress is the only place they live. Every route tak
 * **Profiles**: name, email, password, and two email choices. Changing the email or password needs the current one and ends every session the front end holds, through a `sessionVersion` handed back with each request.
 * **Comments as themselves**, recorded as theirs, and accepted where only registered users may comment.
 
+A password set through Gallop, by `/members/create`, `/members/reset`, or a profile change, must be 8 to 128 characters. Logging in accepts whatever password the account already has.
+
 Five wrong passwords for one login name from one address within fifteen minutes return HTTP 429; each address is sent at most one email every ten minutes and five a day; login, sign-up and reset answer the same whether or not the address is known.
 
 = Comments =
@@ -130,10 +134,25 @@ When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is act
 * `gallop_api_key_generated` — fires after a key has been generated. The key is not passed. Args: `string $keyId`.
 * `gallop_api_key_verified` — fires when a request presented a valid key for a permission it holds. Args: `string $keyId`, `string $capability`, `WP_REST_Request $request`.
 * `gallop_api_key_failed` — fires when a request presented a key that is not this site's. Args: `WP_REST_Request $request`.
+* `gallop_member_login` — fires after a member logged in through the front end. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_member_login_failed` — fires after a failed member login. Args: `string $login`, `WP_Error $error`, `WP_REST_Request $request`.
+* `gallop_member_signup_requested` — fires when someone asked to sign up. The address is not passed: it is not yet known to belong to them. Args: `string $ip`, `WP_REST_Request $request`.
+* `gallop_member_verified` — fires when a member's address is confirmed, or an account is created already confirmed. Args: `WP_User $user`.
+* `gallop_member_registered` — fires after an account was created through the front end, by `/members/confirm` or `/members/create`. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_member_password_reset` — fires after a member reset their password. Args: `WP_User $user`.
+* `gallop_member_updated` — fires after a member changed their profile. Args: `WP_User $user`, `WP_REST_Request $request`.
 
 = Filter hooks =
 
 * `gallop_trust_forwarded_ip` — filter the boolean controlling whether reverse-proxy IP headers (`CF-Connecting-IP`, `X-Forwarded-For`) are trusted when rate-limiting REST auth. Defaults to the "Trust proxy IP headers" setting. Only enable behind a trusted proxy that overwrites these headers, otherwise the per-IP rate limit can be bypassed by spoofing them.
+* `gallop_resolved_post` — the post a `/gallop/v1/post` request resolved to, before its payload is built. Return another `WP_Post` to serve that one instead.
+* `gallop_pre_post_data` — return an array to replace the `post` payload entirely; `gallop_post_data` still runs on it. `gallop_post_data`, `gallop_seo_data`, `gallop_site_data` — filter the `post`, `seo` and `site` payloads. Each is passed the `WP_Post`.
+* `gallop_category_data`, `gallop_category_seo_data`, `gallop_category_site_data` — the same for `/gallop/v1/category`. Each is passed the `WP_Term`.
+* `gallop_post_type_queryable` — whether a post type can be read by id, slug, or listing. Default: public types registered with `show_in_rest`.
+* `gallop_meta_key_queryable` — whether `/gallop/v1/posts` may filter on a meta key. Default: keys registered for the type with `show_in_rest`. `gallop_meta_comparisons` — the accepted `meta_compare` values.
+* `gallop_posts_page_max` — the most posts one `/gallop/v1/posts` request returns. Default no ceiling. `gallop_posts_list_max` — the most `/gallop/v1/posts/list` returns. Default 5,000.
+* `gallop_member_data` — filter a member as returned to the front end. Args: `array $data`, `WP_User $user`.
+* `gallop_member_email` — filter an email before it is sent to a member, or return `false` to send nothing. Args: `array $email` (`to`, `subject`, `message`, `headers`), `string $kind` (`confirm`, `exists`, `reset` or `reply`), `array $context`.
 * `gallop_comment_data` — filter one comment as it is returned. `gallop_comments_data` — filter the whole response to a request for a post's comments.
 * `gallop_comments_max` — the most comments one request returns. Default 500.
 * `gallop_comment_avatar_sizes` — the avatar sizes returned with each comment, in pixels. Default 48 and 96.
@@ -196,6 +215,19 @@ Nothing is written to the users table. Gallop keeps the address and names for up
 = Can the front end send the confirmation email itself? =
 
 Yes. A front end that confirms the address its own way skips the two routes above and calls `POST /gallop/v1/members/create` with `email`, `password`, and optionally `firstName`, `lastName` and `subscribe`, once the address is confirmed. Gallop creates the user at once, with the Subscriber role, marked verified, with that password, and answers 201 with the member. It sends no email and keeps nothing waiting. An address that already has an account is answered 409 `gallop_member_exists` and left as it is. Gallop takes the front end's word that the address was confirmed: only call this after it was.
+
+= What can a members request be refused with? =
+
+Every refusal has a code. Where WordPress gave a reason of its own, it is in `data.reason`.
+
+* The key: `gallop_key_missing` (401), `gallop_key_invalid` (401), `gallop_key_forbidden` (403, the key lacks Manage members), `gallop_https_required` (403), `gallop_key_rate_limited` (429).
+* Logging in: `gallop_member_invalid_credentials` (401, the same whether the account is missing or the password is wrong), `gallop_member_rate_limited` (429).
+* The request: `gallop_member_invalid_ip` (400, login, sign-up and reset requests need the visitor's `ip`), `gallop_member_invalid_email`, `gallop_member_invalid_name`, `gallop_member_weak_password` (all 400).
+* A link: `gallop_member_link_invalid` (400, the confirmation or reset link has expired or was already used).
+* A session: `gallop_member_session_invalid` (401, the member does not exist or `sessionVersion` is out of date; ask them to log in again). Commenting as a member can be refused with it too.
+* A profile change: `gallop_member_wrong_password` (403, the current password is needed to change the email or password and was not right), `gallop_member_email_taken` (409), `gallop_member_update_failed` (400).
+* Creating an account: `gallop_member_exists` (409), `gallop_member_create_failed` (500).
+* The site: `gallop_member_front_end_missing` (500, the Next.js Production URL is not set, so no email can link to the front end).
 
 = What emails does Gallop send? =
 
