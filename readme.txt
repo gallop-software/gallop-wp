@@ -124,43 +124,6 @@ Gallop removes the key from the request as soon as it has been checked, so other
 
 When the [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) plugin is active, the `seo` block in the post and category responses is populated from Yoast's indexable data (canonical, meta description, OpenGraph fields, robots flags, reading time, etc.). Without Yoast, `seo` is returned as an empty object so clients can branch safely.
 
-= Action hooks =
-
-* `gallop_auth_login_success` — fires after a successful REST login. Args: `WP_User $user`, `WP_REST_Request $request`.
-* `gallop_auth_login_failed` — fires after a failed REST login. Args: `string $username`, `WP_REST_Request $request`.
-* `gallop_auth_logout` — fires after a REST logout. Args: `WP_User $user`, `WP_REST_Request $request`.
-* `gallop_comment_submitted` — fires after a submitted comment has been saved, whatever its status. Args: `WP_Comment $comment`, `WP_REST_Request $request`.
-* `gallop_comment_rejected` — fires when WordPress refused a submitted comment. Args: `WP_Error $error`, `WP_REST_Request $request`.
-* `gallop_api_key_generated` — fires after a key has been generated. The key is not passed. Args: `string $keyId`.
-* `gallop_api_key_verified` — fires when a request presented a valid key for a permission it holds. Args: `string $keyId`, `string $capability`, `WP_REST_Request $request`.
-* `gallop_api_key_failed` — fires when a request presented a key that is not this site's. Args: `WP_REST_Request $request`.
-* `gallop_member_login` — fires after a member logged in through the front end. Args: `WP_User $user`, `WP_REST_Request $request`.
-* `gallop_member_login_failed` — fires after a failed member login. Args: `string $login`, `WP_Error $error`, `WP_REST_Request $request`.
-* `gallop_member_signup_requested` — fires when someone asked to sign up. The address is not passed: it is not yet known to belong to them. Args: `string $ip`, `WP_REST_Request $request`.
-* `gallop_member_verified` — fires when a member's address is confirmed, or an account is created already confirmed. Args: `WP_User $user`.
-* `gallop_member_registered` — fires after an account was created through the front end, by `/members/confirm` or `/members/create`. Args: `WP_User $user`, `WP_REST_Request $request`.
-* `gallop_member_password_reset` — fires after a member reset their password. Args: `WP_User $user`.
-* `gallop_member_updated` — fires after a member changed their profile. Args: `WP_User $user`, `WP_REST_Request $request`.
-
-= Filter hooks =
-
-* `gallop_trust_forwarded_ip` — filter the boolean controlling whether reverse-proxy IP headers (`CF-Connecting-IP`, `X-Forwarded-For`) are trusted when rate-limiting REST auth. Defaults to the "Trust proxy IP headers" setting. Only enable behind a trusted proxy that overwrites these headers, otherwise the per-IP rate limit can be bypassed by spoofing them.
-* `gallop_resolved_post` — the post a `/gallop/v1/post` request resolved to, before its payload is built. Return another `WP_Post` to serve that one instead.
-* `gallop_pre_post_data` — return an array to replace the `post` payload entirely; `gallop_post_data` still runs on it. `gallop_post_data`, `gallop_seo_data`, `gallop_site_data` — filter the `post`, `seo` and `site` payloads. Each is passed the `WP_Post`.
-* `gallop_category_data`, `gallop_category_seo_data`, `gallop_category_site_data` — the same for `/gallop/v1/category`. Each is passed the `WP_Term`.
-* `gallop_post_type_queryable` — whether a post type can be read by id, slug, or listing. Default: public types registered with `show_in_rest`.
-* `gallop_meta_key_queryable` — whether `/gallop/v1/posts` may filter on a meta key. Default: keys registered for the type with `show_in_rest`. `gallop_meta_comparisons` — the accepted `meta_compare` values.
-* `gallop_posts_page_max` — the most posts one `/gallop/v1/posts` request returns. Default no ceiling. `gallop_posts_list_max` — the most `/gallop/v1/posts/list` returns. Default 5,000.
-* `gallop_member_data` — filter a member as returned to the front end. Args: `array $data`, `WP_User $user`.
-* `gallop_member_email` — filter an email before it is sent to a member, or return `false` to send nothing. Args: `array $email` (`to`, `subject`, `message`, `headers`), `string $kind` (`confirm`, `exists`, `reset` or `reply`), `array $context`.
-* `gallop_comment_data` — filter one comment as it is returned. `gallop_comments_data` — filter the whole response to a request for a post's comments.
-* `gallop_comments_max` — the most comments one request returns. Default 500.
-* `gallop_comment_avatar_sizes` — the avatar sizes returned with each comment, in pixels. Default 48 and 96.
-* `gallop_comments_cache_control` — the `Cache-Control` header sent with a post's comments.
-* `gallop_api_key_capabilities` — the permissions a key can be granted. Adding one makes it available to tick; it grants it to nothing.
-* `gallop_api_key_max_failed_attempts` — how many wrong keys one address may present in fifteen minutes. Default 10.
-* `gallop_api_key_transport_secure` — whether a request arrived over a connection safe to carry the key.
-
 = Data stored =
 
 * `gallop_post_types` (option) — your custom post type definitions.
@@ -291,6 +254,45 @@ No. Posts, pages, media, and built-in taxonomies are left alone. Only post types
 = What happens if I deactivate or delete the plugin? =
 
 Deactivating stops Gallop from registering its post types and REST routes; content created under those post types stays in the database. Deleting the plugin (via the Plugins screen) additionally removes every `gallop_*` option and transient. Posts authored under your custom post types are intentionally left in place so they survive an uninstall/reinstall. So are comments and member accounts; what Gallop recorded about members (a few user meta rows) is removed.
+
+= Which actions and filters does Gallop provide? =
+
+**Actions**
+
+* `gallop_auth_login_success` — fires after a successful REST login. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_auth_login_failed` — fires after a failed REST login. Args: `string $username`, `WP_REST_Request $request`.
+* `gallop_auth_logout` — fires after a REST logout. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_comment_submitted` — fires after a submitted comment has been saved, whatever its status. Args: `WP_Comment $comment`, `WP_REST_Request $request`.
+* `gallop_comment_rejected` — fires when WordPress refused a submitted comment. Args: `WP_Error $error`, `WP_REST_Request $request`.
+* `gallop_api_key_generated` — fires after a key has been generated. The key is not passed. Args: `string $keyId`.
+* `gallop_api_key_verified` — fires when a request presented a valid key for a permission it holds. Args: `string $keyId`, `string $capability`, `WP_REST_Request $request`.
+* `gallop_api_key_failed` — fires when a request presented a key that is not this site's. Args: `WP_REST_Request $request`.
+* `gallop_member_login` — fires after a member logged in through the front end. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_member_login_failed` — fires after a failed member login. Args: `string $login`, `WP_Error $error`, `WP_REST_Request $request`.
+* `gallop_member_signup_requested` — fires when someone asked to sign up. The address is not passed: it is not yet known to belong to them. Args: `string $ip`, `WP_REST_Request $request`.
+* `gallop_member_verified` — fires when a member's address is confirmed, or an account is created already confirmed. Args: `WP_User $user`.
+* `gallop_member_registered` — fires after an account was created through the front end, by `/members/confirm` or `/members/create`. Args: `WP_User $user`, `WP_REST_Request $request`.
+* `gallop_member_password_reset` — fires after a member reset their password. Args: `WP_User $user`.
+* `gallop_member_updated` — fires after a member changed their profile. Args: `WP_User $user`, `WP_REST_Request $request`.
+
+**Filters**
+
+* `gallop_trust_forwarded_ip` — filter the boolean controlling whether reverse-proxy IP headers (`CF-Connecting-IP`, `X-Forwarded-For`) are trusted when rate-limiting REST auth. Defaults to the "Trust proxy IP headers" setting. Only enable behind a trusted proxy that overwrites these headers, otherwise the per-IP rate limit can be bypassed by spoofing them.
+* `gallop_resolved_post` — the post a `/gallop/v1/post` request resolved to, before its payload is built. Return another `WP_Post` to serve that one instead.
+* `gallop_pre_post_data` — return an array to replace the `post` payload entirely; `gallop_post_data` still runs on it. `gallop_post_data`, `gallop_seo_data`, `gallop_site_data` — filter the `post`, `seo` and `site` payloads. Each is passed the `WP_Post`.
+* `gallop_category_data`, `gallop_category_seo_data`, `gallop_category_site_data` — the same for `/gallop/v1/category`. Each is passed the `WP_Term`.
+* `gallop_post_type_queryable` — whether a post type can be read by id, slug, or listing. Default: public types registered with `show_in_rest`.
+* `gallop_meta_key_queryable` — whether `/gallop/v1/posts` may filter on a meta key. Default: keys registered for the type with `show_in_rest`. `gallop_meta_comparisons` — the accepted `meta_compare` values.
+* `gallop_posts_page_max` — the most posts one `/gallop/v1/posts` request returns. Default no ceiling. `gallop_posts_list_max` — the most `/gallop/v1/posts/list` returns. Default 5,000.
+* `gallop_member_data` — filter a member as returned to the front end. Args: `array $data`, `WP_User $user`.
+* `gallop_member_email` — filter an email before it is sent to a member, or return `false` to send nothing. Args: `array $email` (`to`, `subject`, `message`, `headers`), `string $kind` (`confirm`, `exists`, `reset` or `reply`), `array $context`.
+* `gallop_comment_data` — filter one comment as it is returned. `gallop_comments_data` — filter the whole response to a request for a post's comments.
+* `gallop_comments_max` — the most comments one request returns. Default 500.
+* `gallop_comment_avatar_sizes` — the avatar sizes returned with each comment, in pixels. Default 48 and 96.
+* `gallop_comments_cache_control` — the `Cache-Control` header sent with a post's comments.
+* `gallop_api_key_capabilities` — the permissions a key can be granted. Adding one makes it available to tick; it grants it to nothing.
+* `gallop_api_key_max_failed_attempts` — how many wrong keys one address may present in fifteen minutes. Default 10.
+* `gallop_api_key_transport_secure` — whether a request arrived over a connection safe to carry the key.
 
 == Privacy ==
 
